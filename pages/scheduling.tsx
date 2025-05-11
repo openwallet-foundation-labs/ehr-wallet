@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,49 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Head from "next/head";
 import Link from "next/link";
 
-// Types for our appointment data
-type AppointmentStatus = "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show";
+// Types to match our API data structure
+type AppointmentStatus = "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
+// This is the raw appointment data from the API
+type ApiAppointment = {
+  id: string;
+  title: string;
+  patientId: string;
+  providerId: string;
+  appointmentTypeId: string | null;
+  startTime: string;
+  endTime: string;
+  notes: string | null;
+  status: AppointmentStatus;
+  createdAt: string;
+  updatedAt: string;
+  patient: {
+    id: string;
+    patientId: string;
+    name: string;
+    dob: string;
+    gender: string;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+  };
+  provider: {
+    id: string;
+    name: string;
+    specialty: string | null;
+    email: string;
+    phone: string | null;
+  };
+  appointmentType: {
+    id: string;
+    name: string;
+    description: string | null;
+    duration: number;
+    color: string | null;
+  } | null;
+};
+
+// This is our formatted appointment data for the UI
 type Appointment = {
   id: string;
   patientId: string;
@@ -24,47 +64,57 @@ type Appointment = {
   modality: string;
   bodyPart: string;
   doctor: string;
-  status: AppointmentStatus;
+  status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show";
   priority: "routine" | "urgent" | "stat";
   duration: number; // in minutes
 };
 
-// Mock data for appointments
-const generateMockAppointments = (date: Date): Appointment[] => {
-  const dateStr = format(date, "yyyy-MM-dd");
-  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  const count = isWeekend ? 5 : 12;
-  
-  const appointments: Appointment[] = [];
-  const modalities = ["CT", "MRI", "X-Ray", "Ultrasound", "Mammography"];
-  const bodyParts = ["Head", "Chest", "Abdomen", "Spine", "Upper Extremity", "Lower Extremity"];
-  const doctors = ["Dr. Johnson", "Dr. Smith", "Dr. Chen", "Dr. Patel", "Dr. Garcia"];
-  const statuses: AppointmentStatus[] = ["scheduled", "in-progress", "completed", "cancelled", "no-show"];
-  const priorities = ["routine", "urgent", "stat"];
-  
-  // Generate appointments for morning and afternoon
-  for (let i = 0; i < count; i++) {
-    const hour = 8 + Math.floor(i / 2) + (i >= 8 ? 1 : 0); // Skip lunch hour
-    const minute = i % 2 === 0 ? "00" : "30";
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour > 12 ? hour - 12 : hour;
+// Map appointments from API to our UI format
+const formatApiAppointments = (appointments: ApiAppointment[]): Appointment[] => {
+  return appointments.map(apt => {
+    // Extract body part from the title if possible (assumes format like "MRI - Head")
+    const titleParts = apt.title.split(' - ');
+    const modality = apt.appointmentType?.name.split(' ')[0] || titleParts[0] || 'Other';
+    const bodyPart = titleParts.length > 1 ? titleParts[1] : 'Not specified';
     
-    appointments.push({
-      id: `APT-${dateStr}-${i + 1}`,
-      patientId: `PAT-${1000 + i}`,
-      patientName: `Patient ${i + 1}`,
-      time: `${hour12}:${minute} ${ampm}`,
-      date: dateStr,
-      modality: modalities[i % modalities.length],
-      bodyPart: bodyParts[i % bodyParts.length],
-      doctor: doctors[i % doctors.length],
-      status: i < count - 3 ? statuses[i % 3] : statuses[i % statuses.length],
-      priority: priorities[i % priorities.length] as "routine" | "urgent" | "stat",
-      duration: 30
-    });
-  }
-  
-  return appointments;
+    // Calculate duration in minutes
+    const startTime = new Date(apt.startTime);
+    const endTime = new Date(apt.endTime);
+    const durationMs = endTime.getTime() - startTime.getTime();
+    const durationMinutes = Math.round(durationMs / (1000 * 60));
+    
+    // Map API status to UI status
+    const statusMap: Record<AppointmentStatus, "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show"> = {
+      SCHEDULED: "scheduled",
+      CONFIRMED: "scheduled",
+      COMPLETED: "completed",
+      CANCELLED: "cancelled",
+      NO_SHOW: "no-show"
+    };
+    
+    // Determine priority based on appointment type or duration
+    // This is a simple heuristic - in a real app you might have this data from the API
+    let priority: "routine" | "urgent" | "stat" = "routine";
+    if (apt.title.toLowerCase().includes('urgent') || apt.title.toLowerCase().includes('emergency')) {
+      priority = "urgent";
+    } else if (apt.title.toLowerCase().includes('stat')) {
+      priority = "stat";
+    }
+    
+    return {
+      id: apt.id,
+      patientId: apt.patient.patientId,
+      patientName: apt.patient.name,
+      time: format(startTime, "h:mm a"),
+      date: format(startTime, "yyyy-MM-dd"),
+      modality,
+      bodyPart,
+      doctor: apt.provider.name,
+      status: statusMap[apt.status],
+      priority,
+      duration: durationMinutes || apt.appointmentType?.duration || 30
+    };
+  });
 };
 
 const SchedulingContent = () => {
@@ -72,17 +122,61 @@ const SchedulingContent = () => {
   const [currentView, setCurrentView] = useState<"day" | "week" | "month">("day");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModality, setFilterModality] = useState<string | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   
   // Generate dates for the week view
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDates = eachDayOfInterval({ start: weekStart, end: weekEnd });
   
-  // Generate mock appointments for the selected date
-  const dayAppointments = generateMockAppointments(currentDate);
+  // Fetch appointments whenever date or view changes
+  useEffect(() => {
+    async function fetchAppointments() {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Format date parameters based on current view
+        let startDate, endDate;
+        
+        if (currentView === "day") {
+          startDate = format(currentDate, "yyyy-MM-dd");
+          endDate = startDate;
+        } else if (currentView === "week") {
+          startDate = format(weekStart, "yyyy-MM-dd");
+          endDate = format(weekEnd, "yyyy-MM-dd");
+        }
+        
+        // Fetch appointments from our API
+        const response = await fetch(`/api/appointments?startDate=${startDate}&endDate=${endDate}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch appointments: ${response.status}`);
+        }
+        
+        const data: ApiAppointment[] = await response.json();
+        const formattedAppointments = formatApiAppointments(data);
+        setAppointments(formattedAppointments);
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchAppointments();
+  }, [currentDate, currentView]);
   
-  // Generate appointments for the week
-  const weekAppointments = weekDates.flatMap(date => generateMockAppointments(date));
+  // Filter appointments for day view
+  const dayAppointments = appointments.filter(apt => 
+    apt.date === format(currentDate, "yyyy-MM-dd")
+  );
+  
+  // All appointments for week view
+  const weekAppointments = appointments;
   
   // Filter appointments based on search and filters
   const filterAppointments = (appointments: Appointment[]) => {
@@ -92,7 +186,9 @@ const SchedulingContent = () => {
         apt.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         apt.doctor.toLowerCase().includes(searchQuery.toLowerCase());
         
-      const matchesModality = !filterModality || apt.modality.toLowerCase() === filterModality.toLowerCase();
+      // Handle the "All" selection by treating it as no filter
+      const noModalityFilter = !filterModality || filterModality === "All";
+      const matchesModality = noModalityFilter || apt.modality.toLowerCase() === filterModality.toLowerCase();
       
       return matchesSearch && matchesModality;
     });
@@ -109,7 +205,7 @@ const SchedulingContent = () => {
   const goToNextWeek = () => setCurrentDate(addDays(currentDate, 7));
   
   // Status badge styles
-  const getStatusBadge = (status: AppointmentStatus) => {
+  const getStatusBadge = (status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show") => {
     switch (status) {
       case "scheduled":
         return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
@@ -248,7 +344,15 @@ const SchedulingContent = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredDayAppointments.length === 0 ? (
+              {loading ? (
+                <div className="py-12 text-center text-muted-foreground text-lg">
+                  Loading appointments...
+                </div>
+              ) : error ? (
+                <div className="py-12 text-center text-red-500 text-lg">
+                  Error: {error}
+                </div>
+              ) : filteredDayAppointments.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground text-lg">
                   No appointments found for this day
                 </div>
@@ -305,7 +409,15 @@ const SchedulingContent = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="max-h-[400px] overflow-y-auto">
-                    {dateAppointments.length === 0 ? (
+                    {loading ? (
+                      <div className="py-8 text-center text-muted-foreground text-base">
+                        Loading...
+                      </div>
+                    ) : error ? (
+                      <div className="py-8 text-center text-red-500 text-base">
+                        Error
+                      </div>
+                    ) : dateAppointments.length === 0 ? (
                       <div className="py-8 text-center text-muted-foreground text-base">
                         No appointments
                       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -46,7 +46,7 @@ const examFormSchema = z.object({
   procedureType: z.string().min(1, { message: "Procedure type is required" }),
   bodyPart: z.string().min(1, { message: "Body part is required" }),
   referringPhysician: z.string().min(1, { message: "Referring physician is required" }),
-  radiologist: z.string().optional(),
+  appointmentType: z.string().optional(),  // Added for appointment type selection
   priority: z.string().default("routine"),
   notes: z.string().optional(),
   contrast: z.boolean().default(false),
@@ -55,38 +55,121 @@ const examFormSchema = z.object({
 
 type ExamFormValues = z.infer<typeof examFormSchema>;
 
+// Define types for our API response data
+type Patient = {
+  id: string;
+  patientId: string;
+  name: string;
+  dob: string;
+  gender: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+};
+
+type Provider = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  email: string;
+  phone: string | null;
+};
+
+type AppointmentType = {
+  id: string;
+  name: string;
+  description: string | null;
+  duration: number;
+  color: string | null;
+};
+
+type TimeSlot = {
+  id: string;
+  providerId: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  provider: Provider;
+};
+
 const ScheduleExamContent = () => {
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([
-    "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM", 
-    "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-    "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
-    "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM"
-  ]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(addDays(new Date(), 1));
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null);
   
-  // Mock patient data - in a real app, this would come from an API
-  const patients = [
-    { id: "P001", name: "John Smith" },
-    { id: "P002", name: "Sarah Johnson" },
-    { id: "P003", name: "Michael Brown" },
-    { id: "P004", name: "Emily Davis" },
-    { id: "P005", name: "Robert Wilson" },
-  ];
+  // State for API data
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   
-  // Mock physicians data
-  const physicians = [
-    { id: "DR001", name: "Dr. Elizabeth Chen" },
-    { id: "DR002", name: "Dr. James Wilson" },
-    { id: "DR003", name: "Dr. Maria Rodriguez" },
-    { id: "DR004", name: "Dr. David Kim" },
-  ];
+  // States for loading and errors
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [loadingAppointmentTypes, setLoadingAppointmentTypes] = useState(false);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Mock radiologists data
-  const radiologists = [
-    { id: "RAD001", name: "Dr. Thomas Johnson" },
-    { id: "RAD002", name: "Dr. Sarah Lee" },
-    { id: "RAD003", name: "Dr. Robert Garcia" },
-  ];
+  // Fetch patients
+  useEffect(() => {
+    async function fetchPatients() {
+      setLoadingPatients(true);
+      try {
+        const response = await fetch('/api/patients');
+        if (!response.ok) throw new Error('Failed to fetch patients');
+        const data = await response.json();
+        setPatients(data);
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+        setErrorMessage('Failed to load patients');
+      } finally {
+        setLoadingPatients(false);
+      }
+    }
+    
+    fetchPatients();
+  }, []);
+  
+  // Fetch providers
+  useEffect(() => {
+    async function fetchProviders() {
+      setLoadingProviders(true);
+      try {
+        const response = await fetch('/api/providers');
+        if (!response.ok) throw new Error('Failed to fetch providers');
+        const data = await response.json();
+        setProviders(data);
+      } catch (error) {
+        console.error('Error fetching providers:', error);
+        setErrorMessage('Failed to load providers');
+      } finally {
+        setLoadingProviders(false);
+      }
+    }
+    
+    fetchProviders();
+  }, []);
+  
+  // Fetch appointment types
+  useEffect(() => {
+    async function fetchAppointmentTypes() {
+      setLoadingAppointmentTypes(true);
+      try {
+        const response = await fetch('/api/appointment-types');
+        if (!response.ok) throw new Error('Failed to fetch appointment types');
+        const data = await response.json();
+        setAppointmentTypes(data);
+      } catch (error) {
+        console.error('Error fetching appointment types:', error);
+        setErrorMessage('Failed to load appointment types');
+      } finally {
+        setLoadingAppointmentTypes(false);
+      }
+    }
+    
+    fetchAppointmentTypes();
+  }, []);
 
   const defaultValues: Partial<ExamFormValues> = {
     patientId: "",
@@ -97,7 +180,7 @@ const ScheduleExamContent = () => {
     procedureType: "",
     bodyPart: "",
     referringPhysician: "",
-    radiologist: "",
+    appointmentType: "",  // Added for appointment type selection
     priority: "routine",
     notes: "",
     contrast: false,
@@ -119,33 +202,148 @@ const ScheduleExamContent = () => {
     }
   };
 
+  // Fetch available time slots when a provider and date are selected
+  const fetchTimeSlots = async (providerId: string, date: Date) => {
+    if (!providerId || !date) return;
+    
+    setLoadingTimeSlots(true);
+    try {
+      // Format the date for the API
+      const dateStr = format(date, 'yyyy-MM-dd');
+      // Get the next day to create a time range for just this day
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = format(nextDay, 'yyyy-MM-dd');
+      
+      // Call our API to get available time slots
+      const url = `/api/time-slots?providerId=${providerId}&startDate=${dateStr}&endDate=${nextDayStr}&isAvailable=true`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch time slots: ${response.status}`);
+      }
+      
+      const data: TimeSlot[] = await response.json();
+      setAvailableTimeSlots(data);
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      setErrorMessage('Failed to load available time slots');
+      setAvailableTimeSlots([]);
+    } finally {
+      setLoadingTimeSlots(false);
+    }
+  };
+
   // Handle date selection to update available time slots
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       form.setValue("examDate", date);
-      // In a real app, you would fetch available time slots for this date from your API
-      // For now, we'll just simulate some random availability
-      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-      if (isWeekend) {
-        setAvailableTimeSlots(["09:00 AM", "10:00 AM", "11:00 AM"]);
-      } else {
-        setAvailableTimeSlots([
-          "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM", 
-          "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-          "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
-          "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM"
-        ]);
+      setSelectedDate(date);
+      
+      // Fetch time slots if we also have a provider selected
+      if (selectedProviderId) {
+        fetchTimeSlots(selectedProviderId, date);
+      }
+    }
+  };
+  
+  // Handle provider selection
+  const handleProviderSelect = (providerId: string) => {
+    setSelectedProviderId(providerId);
+    form.setValue("referringPhysician", providerId);
+    
+    // Fetch time slots if we have a date selected
+    if (selectedDate) {
+      fetchTimeSlots(providerId, selectedDate);
+    }
+  };
+  
+  // Handle appointment type selection
+  const handleAppointmentTypeSelect = (typeId: string) => {
+    setSelectedAppointmentType(typeId);
+    
+    // Set related fields based on the selected appointment type
+    const appointmentType = appointmentTypes.find(type => type.id === typeId);
+    if (appointmentType) {
+      // If the appointment type name contains modality information, set it
+      const nameLower = appointmentType.name.toLowerCase();
+      if (nameLower.includes('mri')) {
+        form.setValue("modality", "mri");
+      } else if (nameLower.includes('ct')) {
+        form.setValue("modality", "ct");
+      } else if (nameLower.includes('x-ray') || nameLower.includes('xray')) {
+        form.setValue("modality", "xray");
+      } else if (nameLower.includes('ultrasound')) {
+        form.setValue("modality", "ultrasound");
       }
     }
   };
 
-  const onSubmit = (data: ExamFormValues) => {
-    console.log("Exam scheduled:", data);
-    toast({
-      title: "Exam scheduled successfully",
-      description: `${data.patientName}'s ${data.modality} exam has been scheduled for ${format(data.examDate, "PPP")} at ${data.examTime}.`,
-    });
-    // In a real app, you would send this data to your API here
+  const onSubmit = async (data: ExamFormValues) => {
+    try {
+      // Find the selected time slot
+      const selectedTimeSlot = availableTimeSlots.find(slot => 
+        format(new Date(slot.startTime), 'h:mm a') === data.examTime
+      );
+      
+      if (!selectedTimeSlot) {
+        toast({
+          title: "Error",
+          description: "Please select a valid time slot",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Format the title based on selected modality and body part
+      const title = `${data.modality.toUpperCase()} - ${data.bodyPart}`;
+      
+      // Get the appointment type ID if one is selected
+      const appointmentTypeId = selectedAppointmentType;
+      
+      // Create the appointment via the API
+      const appointmentData = {
+        title,
+        patientId: data.patientId,
+        providerId: data.referringPhysician, // Using the referring physician as the provider
+        appointmentTypeId,
+        startTime: selectedTimeSlot.startTime,
+        endTime: selectedTimeSlot.endTime,
+        notes: data.notes || '',
+        status: 'SCHEDULED'
+      };
+      
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(appointmentData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create appointment');
+      }
+      
+      const result = await response.json();
+      
+      // Show success message
+      toast({
+        title: "Exam scheduled successfully",
+        description: `${data.patientName}'s ${data.modality} exam has been scheduled for ${format(data.examDate, "PPP")} at ${data.examTime}.`,
+      });
+      
+      // Reset form or redirect
+      // window.location.href = '/scheduling';
+    } catch (error) {
+      console.error('Error scheduling appointment:', error);
+      toast({
+        title: "Error scheduling exam",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -182,20 +380,26 @@ const ScheduleExamContent = () => {
                     <div>Action</div>
                   </div>
                   <div className="divide-y">
-                    {patients.map((patient) => (
-                      <div key={patient.id} className="grid grid-cols-3 p-3 items-center">
-                        <div>{patient.id}</div>
-                        <div>{patient.name}</div>
-                        <div>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handlePatientSelect(patient.id)}
-                          >
-                            Select
-                          </Button>
+                    {loadingPatients ? (
+                      <div className="p-3 text-center">Loading patients...</div>
+                    ) : patients.length === 0 ? (
+                      <div className="p-3 text-center">No patients found</div>
+                    ) : (
+                      patients.map((patient) => (
+                        <div key={patient.id} className="grid grid-cols-3 p-3 items-center">
+                          <div>{patient.patientId}</div>
+                          <div>{patient.name}</div>
+                          <div>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handlePatientSelect(patient.id)}
+                            >
+                              Select
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -308,11 +512,20 @@ const ScheduleExamContent = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {availableTimeSlots.map((timeSlot) => (
-                                  <SelectItem key={timeSlot} value={timeSlot}>
-                                    {timeSlot}
-                                  </SelectItem>
-                                ))}
+                                {loadingTimeSlots ? (
+                                  <div className="p-2 text-center">Loading available times...</div>
+                                ) : availableTimeSlots.length === 0 ? (
+                                  <div className="p-2 text-center">No available time slots</div>
+                                ) : (
+                                  availableTimeSlots.map((timeSlot) => (
+                                    <SelectItem 
+                                      key={timeSlot.id} 
+                                      value={format(new Date(timeSlot.startTime), 'h:mm a')}
+                                    >
+                                      {format(new Date(timeSlot.startTime), 'h:mm a')}
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -326,7 +539,13 @@ const ScheduleExamContent = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Modality</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select 
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                // If appointment type is selected, this will be auto-filled
+                              }} 
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select modality" />
@@ -408,18 +627,30 @@ const ScheduleExamContent = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Referring Physician</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select 
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                handleProviderSelect(value);
+                              }} 
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select referring physician" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {physicians.map((physician) => (
-                                  <SelectItem key={physician.id} value={physician.id}>
-                                    {physician.name}
-                                  </SelectItem>
-                                ))}
+                                {loadingProviders ? (
+                                  <div className="p-2 text-center">Loading providers...</div>
+                                ) : providers.length === 0 ? (
+                                  <div className="p-2 text-center">No providers found</div>
+                                ) : (
+                                  providers.map((provider) => (
+                                    <SelectItem key={provider.id} value={provider.id}>
+                                      {provider.name}{provider.specialty ? ` (${provider.specialty})` : ''}
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -429,25 +660,39 @@ const ScheduleExamContent = () => {
 
                       <FormField
                         control={form.control}
-                        name="radiologist"
+                        name="appointmentType"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Radiologist (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormLabel>Appointment Type</FormLabel>
+                            <Select 
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                handleAppointmentTypeSelect(value);
+                              }} 
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select radiologist" />
+                                  <SelectValue placeholder="Select appointment type" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {radiologists.map((radiologist) => (
-                                  <SelectItem key={radiologist.id} value={radiologist.id}>
-                                    {radiologist.name}
-                                  </SelectItem>
-                                ))}
+                                {loadingAppointmentTypes ? (
+                                  <div className="p-2 text-center">Loading appointment types...</div>
+                                ) : appointmentTypes.length === 0 ? (
+                                  <div className="p-2 text-center">No appointment types found</div>
+                                ) : (
+                                  appointmentTypes.map((type) => (
+                                    <SelectItem key={type.id} value={type.id}>
+                                      {type.name} ({type.duration} min)
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
-                            <FormDescription>Leave empty for auto-assignment</FormDescription>
+                            <FormDescription>
+                              Select the type of imaging procedure
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

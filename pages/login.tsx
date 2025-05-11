@@ -45,22 +45,26 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      // Get the callback URL from the query parameters or default to '/'
+      const callbackUrl = Array.isArray(router.query.callbackUrl)
+        ? router.query.callbackUrl[0]
+        : router.query.callbackUrl || '/';
+      
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
-        redirect: false,
+        redirect: true,
+        callbackUrl,
       });
-
+      
+      // The following won't execute if redirect is true
+      // but we'll keep it as a fallback
       if (result?.error) {
         toast.error('Invalid email or password');
-      } else {
-        toast.success('Logged in successfully');
-        router.push('/');
       }
     } catch (error) {
       toast.error('An error occurred during login');
       console.error('Login error:', error);
-    } finally {
       setIsLoading(false);
     }
   }
@@ -71,17 +75,14 @@ export default function LoginPage() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <Image 
-              src="/logo.png" 
-              alt="Radiant Flow Imaging Hub Logo" 
-              width={64} 
-              height={64} 
-              className="h-16 w-auto" 
+              src="/default-monochrome.svg" 
+              alt="GlobalRad Logo" 
+              width={32} 
+              height={32} 
+              className="h-6 w-auto" 
             />
           </div>
-          <CardTitle className="text-2xl font-semibold">Login</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account
-          </CardDescription>
+          {/* <CardTitle className="text-2xl font-semibold">Login</CardTitle> */}
         </CardHeader>
         <CardContent>
           <Form {...form}>
