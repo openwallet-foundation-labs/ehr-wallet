@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs", "openssl", "libudev", "ca-certificates"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build"]
+
+[start]
+cmd = "npm start"
+
+[variables]
+NODE_ENV = "production"
