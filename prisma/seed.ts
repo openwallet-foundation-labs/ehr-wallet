@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+// Import the prisma client from our custom implementation
+import { prisma } from '../lib/prisma';
 
 async function main() {
   // Clear existing data
