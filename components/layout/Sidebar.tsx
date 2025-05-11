@@ -72,9 +72,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="p-4 border-b border-border">
             <div className="flex justify-between items-center">
               <h1 className="text-xl font-semibold text-primary">RadGlobal RIS</h1>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                ✕
-              </Button>
+              {/* Close button removed to avoid duplicate X icons */}
             </div>
           </div>
           

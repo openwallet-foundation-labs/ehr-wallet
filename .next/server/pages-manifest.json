@@ -2,6 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/scheduling": "pages/scheduling.js"
+  "/PatientList": "pages/PatientList.js",
+  "/patients/[id]": "pages/patients/[id].js",
+  "/patients/edit/[id]": "pages/patients/edit/[id].js"
 }

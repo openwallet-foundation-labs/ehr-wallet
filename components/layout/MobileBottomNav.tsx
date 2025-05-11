@@ -17,8 +17,8 @@ export function MobileBottomNav() {
   };
   
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-      <nav className="flex justify-around items-center h-16">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 border-t border-gray-200 dark:border-gray-800 pb-2">
+      <nav className="flex justify-around items-center h-16 mb-1">
         {routes.map((route) => {
           const Icon = route.icon;
           return (

@@ -1,5 +1,6 @@
 
 import { Calendar, User, FileSearch, Clock, BarChart3, Activity } from "lucide-react";
+import { useRouter } from "next/router";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StudiesTable } from "@/components/dashboard/StudiesTable";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
 const Dashboard = () => {
+  const router = useRouter();
   return (
     <div className="space-y-8">
       {/* Header section */}
@@ -19,7 +21,7 @@ const Dashboard = () => {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <Button>
+          <Button onClick={() => router.push('/patients/register')}>
             <User className="mr-2 h-4 w-4" />
             New Patient
           </Button>

@@ -1,7 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { format, isAfter, isBefore, parseISO } from "date-fns";
 import { 
   Table, 
   TableBody, 
@@ -10,7 +13,20 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { User, Search, Filter } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { User, Search, Filter, Loader2, CalendarIcon, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type Patient = {
   id: string;
@@ -19,61 +35,98 @@ type Patient = {
   gender: string;
   phone: string;
   lastVisit: string;
+  email?: string;
+  address?: string;
 };
 
-const mockPatients: Patient[] = [
-  {
-    id: "PAT-7890",
-    name: "John Smith",
-    dob: "1975-05-15",
-    gender: "Male",
-    phone: "(555) 123-4567",
-    lastVisit: "2025-05-01",
-  },
-  {
-    id: "PAT-7891",
-    name: "Emma Johnson",
-    dob: "1982-09-23",
-    gender: "Female",
-    phone: "(555) 234-5678",
-    lastVisit: "2025-05-03",
-  },
-  {
-    id: "PAT-7892",
-    name: "Robert Davis",
-    dob: "1968-03-12",
-    gender: "Male",
-    phone: "(555) 345-6789",
-    lastVisit: "2025-05-05",
-  },
-  {
-    id: "PAT-7893",
-    name: "Sarah Wilson",
-    dob: "1990-07-30",
-    gender: "Female",
-    phone: "(555) 456-7890",
-    lastVisit: "2025-05-07",
-  },
-  {
-    id: "PAT-7894",
-    name: "Michael Brown",
-    dob: "1956-11-08",
-    gender: "Male",
-    phone: "(555) 567-8901",
-    lastVisit: "2025-05-09",
-  },
-];
-
 const PatientList = () => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [patients] = useState<Patient[]>(mockPatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Filter patients by search query
-  const filteredPatients = patients.filter(
-    patient => 
+  // Date filter state
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+  const [dateFilterType, setDateFilterType] = useState<"lastVisit" | "dob">("lastVisit");
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(undefined);
+  const [isFiltering, setIsFiltering] = useState(false);
+  
+  // Fetch patients from the API
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/patients');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch patients');
+        }
+        
+        const data = await response.json();
+        setPatients(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching patients:', err);
+        setError('Failed to load patients. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchPatients();
+  }, []);
+  
+  // Clear date filters
+  const clearDateFilters = () => {
+    setFromDate(undefined);
+    setToDate(undefined);
+    setIsFiltering(false);
+  };
+  
+  // Format date for display
+  const formatDate = (date: Date | undefined): string => {
+    return date ? format(date, 'MMM dd, yyyy') : '';
+  };
+  
+  // Filter patients by search query and dates
+  const filteredPatients = patients.filter(patient => {
+    // Text search filter
+    const matchesSearch = 
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      patient.id.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    if (!matchesSearch) return false;
+    
+    // Date filters
+    if (isFiltering && (fromDate || toDate)) {
+      const dateToCheck = dateFilterType === "lastVisit" ? patient.lastVisit : patient.dob;
+      
+      if (!dateToCheck) return false;
+      
+      try {
+        const parsedDate = parseISO(dateToCheck);
+        
+        // From date filter
+        if (fromDate && isBefore(parsedDate, fromDate)) {
+          return false;
+        }
+        
+        // To date filter
+        if (toDate && isAfter(parsedDate, toDate)) {
+          return false;
+        }
+        
+        return true;
+      } catch (e) {
+        // If date parsing fails, exclude the record from filtered results
+        return false;
+      }
+    }
+    
+    return true;
+  });
   
   return (
     <div className="space-y-6">
@@ -83,7 +136,7 @@ const PatientList = () => {
           <p className="text-muted-foreground">View and manage patient records</p>
         </div>
         
-        <Button>
+        <Button onClick={() => router.push('/patients/register')}>
           <User className="mr-2 h-4 w-4" />
           New Patient
         </Button>
@@ -101,10 +154,121 @@ const PatientList = () => {
         </div>
         
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
+          <Popover open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
+                {isFiltering && (
+                  <Badge variant="secondary" className="ml-2 px-1 font-normal">
+                    {dateFilterType === "lastVisit" ? "Visit" : "DOB"}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4" align="end">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Filter Patients By Date</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Apply date range filters to patient records.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium">Date Type:</label>
+                    <Select
+                      value={dateFilterType}
+                      onValueChange={(value: "lastVisit" | "dob") => setDateFilterType(value)}
+                    >
+                      <SelectTrigger className="w-32 h-8">
+                        <SelectValue placeholder="Select date type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lastVisit">Last Visit</SelectItem>
+                        <SelectItem value="dob">Date of Birth</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium">From:</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal h-8"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? formatDate(fromDate) : "Select date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium">To:</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal h-8"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? formatDate(toDate) : "Select date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDateFilters}
+                    disabled={!fromDate && !toDate}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Clear
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setIsFiltering(true);
+                      setDateFilterOpen(false);
+                    }}
+                    disabled={!fromDate && !toDate}
+                  >
+                    Apply Filter
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
           <Button variant="outline" size="sm">Export</Button>
         </div>
       </div>
@@ -123,7 +287,22 @@ const PatientList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPatients.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading patients...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-destructive">
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : filteredPatients.length > 0 ? (
               filteredPatients.map((patient) => (
                 <TableRow key={patient.id}>
                   <TableCell className="font-medium">{patient.id}</TableCell>
@@ -131,10 +310,15 @@ const PatientList = () => {
                   <TableCell>{patient.dob}</TableCell>
                   <TableCell>{patient.gender}</TableCell>
                   <TableCell>{patient.phone}</TableCell>
-                  <TableCell>{patient.lastVisit}</TableCell>
+                  <TableCell>{patient.lastVisit || 'N/A'}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="mr-2">View</Button>
-                    <Button variant="outline" size="sm">Edit</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => router.push(`/patients/${patient.id}`)}
+                    >
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
