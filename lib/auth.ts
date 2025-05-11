@@ -43,8 +43,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // With Prisma v6, we need to use the model name directly
-        const users = await prisma.$queryRaw`SELECT * FROM User WHERE email = ${credentials.email} LIMIT 1`;
+        // With Prisma v6 on Netlify, we use parameterized queries for better compatibility
+        const users = await prisma.$queryRaw`SELECT * FROM "User" WHERE email = ${credentials.email} LIMIT 1`;
         
         // Convert the raw result to the expected format
         const userRecord = users[0] as { id: string; email: string; name: string | null; password: string; role: string };
