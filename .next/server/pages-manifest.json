@@ -3,13 +3,6 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
-  "/ScheduleExam": "pages/ScheduleExam.js",
-  "/api/patients": "pages/api/patients.js",
-  "/api/providers": "pages/api/providers.js",
-  "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js",
-  "/patients/register": "pages/patients/register.js",
-  "/api/appointment-types": "pages/api/appointment-types.js",
   "/patients": "pages/patients.js",
-  "/api/appointments": "pages/api/appointments.js",
   "/scheduling": "pages/scheduling.js"
 }
