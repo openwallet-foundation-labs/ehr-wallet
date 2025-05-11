@@ -2,7 +2,12 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
+  "/404": "pages/404.js",
+  "/scheduling": "pages/scheduling.js",
+  "/api/appointments": "pages/api/appointments.js",
+  "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js",
   "/": "pages/index.js",
+  "/patients/register": "pages/patients/register.js",
   "/patients": "pages/patients.js",
-  "/scheduling": "pages/scheduling.js"
+  "/api/patients": "pages/api/patients.js"
 }
