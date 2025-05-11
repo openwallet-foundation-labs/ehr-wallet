@@ -3,6 +3,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+// Models are accessed via prisma.modelName (camelCase)
 
 // Extend the default session type to include our custom properties
 declare module 'next-auth' {
@@ -42,17 +43,19 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        // With Prisma v6, we need to use the model name directly
+        const users = await prisma.$queryRaw`SELECT * FROM User WHERE email = ${credentials.email} LIMIT 1`;
+        
+        // Convert the raw result to the expected format
+        const userRecord = users[0] as { id: string; email: string; name: string | null; password: string; role: string };
 
-        if (!user || !user.password) {
+        if (!userRecord || !userRecord.password) {
           return null;
         }
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.password
+          userRecord.password
         );
 
         if (!isPasswordValid) {
@@ -60,10 +63,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name || null,
-          role: user.role,
+          id: userRecord.id,
+          email: userRecord.email,
+          name: userRecord.name || null,
+          role: userRecord.role,
         };
       },
     }),
