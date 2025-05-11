@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { Bell, Search, User, Menu, X } from "lucide-react";
+import { Bell, Search, Menu, X } from "lucide-react";
+import { UserAccountNav } from "@/components/UserAccountNav";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -85,20 +86,7 @@ export const Header = ({
           <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">3</span>
         </Button>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="User menu">
-              <User className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Sign out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserAccountNav />
       </div>
     </header>
   );

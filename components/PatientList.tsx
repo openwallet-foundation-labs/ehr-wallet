@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { Search, User, Filter, Loader2, CalendarIcon, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format, isAfter, isBefore, parseISO } from 'date-fns';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';

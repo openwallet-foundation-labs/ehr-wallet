@@ -10,18 +10,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  password       String
+  role           UserRole  @default(STAFF)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  STAFF
+}
+
 model Patient {
-  id         String   @id @default(cuid())
-  patientId  String   @unique // Custom patient ID (e.g., PAT-7890)
-  name       String
-  dob        String   // Date of birth
-  gender     String
-  phone      String?
-  email      String?
-  address    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  visits     Visit[]
+  id           String        @id @default(cuid())
+  patientId    String        @unique // Custom patient ID (e.g., PAT-7890)
+  name         String
+  dob          String        // Date of birth
+  gender       String
+  phone        String?
+  email        String?
+  address      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  visits       Visit[]
+  appointments Appointment[]
 }
 
 model Visit {
@@ -32,4 +49,63 @@ model Visit {
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Provider {
+  id           String        @id @default(cuid())
+  name         String
+  specialty    String?
+  email        String        @unique
+  phone        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  timeSlots    TimeSlot[]
+}
+
+model AppointmentType {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  duration     Int           // in minutes
+  color        String?       // for calendar display
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model TimeSlot {
+  id         String   @id @default(cuid())
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  startTime  DateTime
+  endTime    DateTime
+  isAvailable Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Appointment {
+  id               String          @id @default(cuid())
+  title            String
+  patientId        String
+  patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  providerId       String
+  provider         Provider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  appointmentTypeId String?
+  appointmentType  AppointmentType? @relation(fields: [appointmentTypeId], references: [id])
+  startTime        DateTime
+  endTime          DateTime
+  notes            String?
+  status           AppointmentStatus @default(SCHEDULED)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }
