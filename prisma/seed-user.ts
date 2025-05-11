@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { execSync } from 'child_process';
 
@@ -12,7 +12,7 @@ try {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+// prisma client is already instantiated in @/lib/prisma
 
 async function main() {
   try {
