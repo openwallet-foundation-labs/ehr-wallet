@@ -1,14 +1,25 @@
+# Nixpacks configuration for Coolify deployment
+
 [phases.setup]
-nixPkgs = ["nodejs", "openssl", "libudev", "ca-certificates"]
+nixPkgs = ["nodejs"]
+aptPkgs = ["openssl", "ca-certificates"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install -g pnpm", "pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["npx prisma generate", "npm run build"]
+cmds = [
+  "pnpm prisma generate", 
+  "pnpm build"
+]
 
 [start]
-cmd = "npm start"
+cmd = "pnpm start"
 
 [variables]
 NODE_ENV = "production"
+NODE_OPTIONS = "--enable-source-maps"
+
+# Add support for SQLite in production
+[phases.setup.nixLibs]
+libs = ["sqlite"]
