@@ -3,6 +3,7 @@
 [phases.setup]
 nixPkgs = ["nodejs"]
 aptPkgs = ["openssl", "ca-certificates"]
+libs = ["sqlite"]  # SQLite support for database
 
 [phases.install]
 cmds = ["npm install -g pnpm", "pnpm install --frozen-lockfile"]
@@ -19,7 +20,3 @@ cmd = "pnpm start"
 [variables]
 NODE_ENV = "production"
 NODE_OPTIONS = "--enable-source-maps"
-
-# Add support for SQLite in production
-[phases.setup.nixLibs]
-libs = ["sqlite"]
