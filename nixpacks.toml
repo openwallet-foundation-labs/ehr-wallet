@@ -6,16 +6,19 @@ aptPkgs = ["openssl", "ca-certificates"]
 libs = ["sqlite"]  # SQLite support for database
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = [
+  "npm install -g pnpm@9",
+  "pnpm install --frozen-lockfile"
+]
 
 [phases.build]
 cmds = [
-  "npx prisma generate", 
-  "npm run build"
+  "pnpm exec prisma generate", 
+  "pnpm build"
 ]
 
 [start]
-cmd = "npm start"
+cmd = "pnpm start"
 
 [variables]
 NODE_ENV = "production"
