@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { SessionProvider } from "next-auth/react";
+import { AuthWrapper } from "@/components/AuthWrapper";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
@@ -43,8 +43,8 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </Head>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider session={pageProps.session}>
-          <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
+          <AuthWrapper publicPaths={["/login"]}>
             <TooltipProvider>
             {/* Show splash screen only on initial load when in standalone mode */}
             {showSplash && isStandalone && <SplashScreen />}
@@ -67,8 +67,8 @@ export default function App({ Component, pageProps }: AppProps) {
             <Toaster />
             <Sonner />
             </TooltipProvider>
-          </ThemeProvider>
-        </SessionProvider>
+          </AuthWrapper>
+        </ThemeProvider>
       </QueryClientProvider>
     </>
   );

@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
 import Link from 'next/link';
+import { authenticateOffline } from '@/lib/offline-auth';
+import { initDatabase } from '@/lib/db';
+import { seedOfflineDatabase } from '@/lib/seed-offline-db';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +33,25 @@ type FormData = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [dbInitializing, setDbInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+  
+  // Initialize the database and seed if needed
+  useEffect(() => {
+    async function initialize() {
+      try {
+        await initDatabase();
+        await seedOfflineDatabase();
+        setDbInitializing(false);
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+        setInitError('Failed to initialize the offline database. Please reload the page.');
+        setDbInitializing(false);
+      }
+    }
+    
+    initialize();
+  }, []);
 
   // Initialize the form
   const form = useForm<FormData>({
@@ -45,22 +66,30 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      // Get the callback URL from the query parameters or default to '/'
-      const callbackUrl = Array.isArray(router.query.callbackUrl)
-        ? router.query.callbackUrl[0]
-        : router.query.callbackUrl || '/';
+      // Use offline authentication with Dexie
+      const user = await authenticateOffline(data.email, data.password);
       
-      const result = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: true,
-        callbackUrl,
-      });
-      
-      // The following won't execute if redirect is true
-      // but we'll keep it as a fallback
-      if (result?.error) {
+      if (user) {
+        // Store auth state for persistent sessions
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // Get the callback URL from the query parameters or default to '/'
+        const callbackUrl = Array.isArray(router.query.callbackUrl)
+          ? router.query.callbackUrl[0]
+          : router.query.callbackUrl || '/';
+          
+        console.log('Authentication successful, redirecting to:', callbackUrl);
+        
+        // Add a small delay before redirecting to ensure state is properly set
+        setTimeout(() => {
+          // Force a hard navigation instead of client-side routing
+          window.location.href = callbackUrl;
+        }, 100);
+        
+        return; // Early return to prevent setting isLoading to false
+      } else {
         toast.error('Invalid email or password');
+        setIsLoading(false);
       }
     } catch (error) {
       toast.error('An error occurred during login');
@@ -69,6 +98,18 @@ export default function LoginPage() {
     }
   }
 
+  // Show loading state while database is initializing
+  if (dbInitializing) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
+          <p>Initializing offline database...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <Card className="w-full max-w-md">
@@ -82,7 +123,8 @@ export default function LoginPage() {
               className="h-6 w-auto" 
             />
           </div>
-          {/* <CardTitle className="text-2xl font-semibold">Login</CardTitle> */}
+          <CardTitle className="text-2xl font-semibold">Offline Login</CardTitle>
+          {initError && <p className="text-red-500 text-sm">{initError}</p>}
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -132,6 +174,14 @@ export default function LoginPage() {
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
             Don&apos;t have an account? Contact your administrator.
+          </div>
+          <div className="mt-4 text-center text-xs text-muted-foreground bg-muted p-2 rounded">
+            <p>For demo: use the following credentials</p>
+            <div className="mt-1">
+              <p><strong>Admin:</strong> admin@example.com / password</p>
+              <p><strong>Doctor:</strong> doctor@example.com / password</p>
+              <p><strong>Staff:</strong> staff@example.com / password</p>
+            </div>
           </div>
         </CardFooter>
       </Card>

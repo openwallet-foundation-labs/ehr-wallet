@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/router';
-import { useSession } from 'next-auth/react';
+import { getCurrentUser } from '@/lib/offline-auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,8 +40,16 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function RegisterUserPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  useEffect(() => {
+    // Get user from localStorage on client-side
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    setIsCheckingAuth(false);
+  }, []);
 
   // Initialize the form
   const form = useForm<FormData>({
@@ -54,8 +62,20 @@ export default function RegisterUserPage() {
     },
   });
 
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
+          <p>Checking authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Check if user is admin
-  if (session?.user?.role !== 'ADMIN') {
+  if (!currentUser || currentUser.role !== 'ADMIN') {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
         <Card className="w-full max-w-md">

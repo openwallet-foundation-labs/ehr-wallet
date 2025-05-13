@@ -1,4 +1,6 @@
-import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { getCurrentUser, logoutUser } from "@/lib/offline-auth";
+import { useRouter } from "next/router";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,18 +13,25 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, User } from "lucide-react";
 
 export function UserAccountNav() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   
-  if (!session?.user) return null;
+  useEffect(() => {
+    // Get user from localStorage on client-side
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+  }, []);
+  
+  if (!user) return null;
   
   // Get initials for avatar
-  const initials = session.user.name
-    ? session.user.name
+  const initials = user.name
+    ? user.name
         .split(" ")
-        .map(name => name[0])
+        .map((name: string) => name[0])
         .join("")
         .toUpperCase()
-    : session.user.email.substring(0, 2).toUpperCase();
+    : user.email.substring(0, 2).toUpperCase();
 
   // Function to display role in a more readable format
   const formatRole = (role: string) => {
@@ -41,12 +50,12 @@ export function UserAccountNav() {
       <DropdownMenuContent align="end">
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
-            {session.user.name && <p className="font-medium">{session.user.name}</p>}
+            {user.name && <p className="font-medium">{user.name}</p>}
             <p className="w-[200px] truncate text-sm text-muted-foreground">
-              {session.user.email}
+              {user.email}
             </p>
             <p className="text-xs text-muted-foreground">
-              {session.user.role && formatRole(session.user.role)}
+              {user.role && formatRole(user.role)}
             </p>
           </div>
         </div>
@@ -54,7 +63,10 @@ export function UserAccountNav() {
         <DropdownMenuItem asChild>
           <button
             className="flex w-full cursor-pointer items-center"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => {
+              logoutUser();
+              router.push('/login');
+            }}
           >
             <LogOut className="mr-2 h-4 w-4" />
             <span>Sign out</span>
