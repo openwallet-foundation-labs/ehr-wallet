@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getAppointmentTypeById, updateAppointmentType as updateAppointmentTypeDB, deleteAppointmentType as deleteAppointmentTypeDB } from '@/lib/db-utils';
+import { initDatabase, db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure the database is initialized
+  await initDatabase();
+  
   const { id } = req.query;
   
   if (!id || typeof id !== 'string') {
@@ -24,9 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Get appointment type by ID
 async function getAppointmentType(req: NextApiRequest, res: NextApiResponse, id: string) {
   try {
-    const appointmentType = await prisma.appointmentType.findUnique({
-      where: { id },
-    });
+    const appointmentType = await getAppointmentTypeById(id);
     
     if (!appointmentType) {
       return res.status(404).json({ error: 'Appointment type not found' });
@@ -49,15 +51,19 @@ async function updateAppointmentType(req: NextApiRequest, res: NextApiResponse, 
       return res.status(400).json({ error: 'Name and valid duration (in minutes) are required' });
     }
     
-    // Update the appointment type
-    const updatedAppointmentType = await prisma.appointmentType.update({
-      where: { id },
-      data: {
-        name,
-        description: description || null,
-        duration: parseInt(duration),
-        color: color || null,
-      },
+    // Check if the appointment type exists
+    const appointmentType = await getAppointmentTypeById(id);
+    
+    if (!appointmentType) {
+      return res.status(404).json({ error: 'Appointment type not found' });
+    }
+    
+    // Update the appointment type using the utility function
+    const updatedAppointmentType = await updateAppointmentTypeDB(id, {
+      name,
+      description: description || null,
+      duration: parseInt(duration),
+      color: color || null,
     });
     
     return res.status(200).json(updatedAppointmentType);
@@ -71,28 +77,31 @@ async function updateAppointmentType(req: NextApiRequest, res: NextApiResponse, 
 async function deleteAppointmentType(req: NextApiRequest, res: NextApiResponse, id: string) {
   try {
     // Check if the appointment type exists
-    const appointmentType = await prisma.appointmentType.findUnique({
-      where: { id },
-      include: { 
-        appointments: { where: { status: { in: ['SCHEDULED', 'CONFIRMED'] } } }
-      },
-    });
+    const appointmentType = await getAppointmentTypeById(id);
     
     if (!appointmentType) {
       return res.status(404).json({ error: 'Appointment type not found' });
     }
     
+    // Get all appointments with this appointment type
+    const appointments = await db.appointments
+      .where('appointmentTypeId')
+      .equals(id)
+      .toArray();
+    
     // Check if the appointment type is being used in future appointments
-    if (appointmentType.appointments.length > 0) {
+    const activeAppointments = appointments.filter(
+      a => a.status === 'SCHEDULED' || a.status === 'CONFIRMED'
+    );
+    
+    if (activeAppointments.length > 0) {
       return res.status(400).json({ 
         error: 'Cannot delete appointment type that is used in scheduled or confirmed appointments' 
       });
     }
     
-    // Delete the appointment type
-    await prisma.appointmentType.delete({
-      where: { id },
-    });
+    // Delete the appointment type using the utility function
+    await deleteAppointmentTypeDB(id);
     
     return res.status(200).json({ message: 'Appointment type deleted successfully' });
   } catch (error) {

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
+import { createUser, getUserByEmail } from '@/lib/db-utils';
+import { initDatabase } from '@/lib/db';
 
 type RegistrationRequest = {
   name?: string;
@@ -19,6 +19,9 @@ export default async function handler(
   }
 
   try {
+    // Ensure the database is initialized
+    await initDatabase();
+    
     const { name, email, password, role } = req.body as RegistrationRequest;
 
     if (!email || !password) {
@@ -26,9 +29,7 @@ export default async function handler(
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await getUserByEmail(email);
 
     if (existingUser) {
       return res.status(409).json({ message: 'User with this email already exists' });
@@ -37,19 +38,16 @@ export default async function handler(
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role || 'STAFF',
-      },
+    // Create new user with Dexie.js
+    const user = await createUser({
+      name: name || null,
+      email,
+      password: hashedPassword,
+      role: role || 'STAFF',
     });
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-    return res.status(201).json(userWithoutPassword);
+    // User without password is already returned by createUser
+    return res.status(201).json(user);
   } catch (error) {
     console.error('Registration error:', error);
     return res.status(500).json({ message: 'Internal server error' });

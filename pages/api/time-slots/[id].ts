@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getTimeSlotById, updateTimeSlot as updateTimeSlotDB, deleteTimeSlot as deleteTimeSlotDB, getProviderById } from '@/lib/db-utils';
+import { initDatabase, db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure the database is initialized
+  await initDatabase();
+
   const { id } = req.query;
   
   if (!id || typeof id !== 'string') {
@@ -24,18 +28,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Get time slot by ID
 async function getTimeSlot(req: NextApiRequest, res: NextApiResponse, id: string) {
   try {
-    const timeSlot = await prisma.timeSlot.findUnique({
-      where: { id },
-      include: {
-        provider: true,
-      },
-    });
+    const timeSlot = await getTimeSlotById(id);
     
     if (!timeSlot) {
       return res.status(404).json({ error: 'Time slot not found' });
     }
     
-    return res.status(200).json(timeSlot);
+    // Get the provider data
+    const provider = await getProviderById(timeSlot.providerId);
+    
+    // Create the response with the provider included
+    const response = {
+      ...timeSlot,
+      provider
+    };
+    
+    return res.status(200).json(response);
   } catch (error) {
     console.error(`Error fetching time slot ${id}:`, error);
     return res.status(500).json({ error: 'Failed to fetch time slot' });
@@ -53,17 +61,15 @@ async function updateTimeSlot(req: NextApiRequest, res: NextApiResponse, id: str
     }
     
     // Get the current time slot
-    const currentTimeSlot = await prisma.timeSlot.findUnique({
-      where: { id },
-    });
+    const currentTimeSlot = await getTimeSlotById(id);
     
     if (!currentTimeSlot) {
       return res.status(404).json({ error: 'Time slot not found' });
     }
     
     // Validate times if provided
-    let parsedStartTime = currentTimeSlot.startTime;
-    let parsedEndTime = currentTimeSlot.endTime;
+    let parsedStartTime = new Date(currentTimeSlot.startTime);
+    let parsedEndTime = new Date(currentTimeSlot.endTime);
     
     if (startTime) {
       parsedStartTime = new Date(startTime);
@@ -85,34 +91,28 @@ async function updateTimeSlot(req: NextApiRequest, res: NextApiResponse, id: str
     
     // Check for overlapping time slots if times are being changed
     if (startTime || endTime) {
-      const overlappingSlots = await prisma.timeSlot.findMany({
-        where: {
-          id: { not: id },
-          providerId: currentTimeSlot.providerId,
-          OR: [
-            {
-              // New start time is within an existing slot
-              AND: [
-                { startTime: { lte: parsedStartTime } },
-                { endTime: { gt: parsedStartTime } },
-              ],
-            },
-            {
-              // New end time is within an existing slot
-              AND: [
-                { startTime: { lt: parsedEndTime } },
-                { endTime: { gte: parsedEndTime } },
-              ],
-            },
-            {
-              // New slot completely contains an existing slot
-              AND: [
-                { startTime: { gte: parsedStartTime } },
-                { endTime: { lte: parsedEndTime } },
-              ],
-            },
-          ],
-        },
+      // Get all time slots for this provider
+      const providerTimeSlots = await db.timeSlots
+        .where('providerId')
+        .equals(currentTimeSlot.providerId)
+        .toArray();
+      
+      // Filter out the current time slot and check for overlaps
+      const overlappingSlots = providerTimeSlots.filter(slot => {
+        // Skip the current time slot
+        if (slot.id === id) return false;
+        
+        const slotStart = new Date(slot.startTime);
+        const slotEnd = new Date(slot.endTime);
+        
+        return (
+          // New start time is within an existing slot
+          (slotStart <= parsedStartTime && slotEnd > parsedStartTime) ||
+          // New end time is within an existing slot
+          (slotStart < parsedEndTime && slotEnd >= parsedEndTime) ||
+          // New slot completely contains an existing slot
+          (parsedStartTime <= slotStart && parsedEndTime >= slotEnd)
+        );
       });
       
       if (overlappingSlots.length > 0) {
@@ -120,20 +120,25 @@ async function updateTimeSlot(req: NextApiRequest, res: NextApiResponse, id: str
       }
     }
     
-    // Update the time slot
-    const updatedTimeSlot = await prisma.timeSlot.update({
-      where: { id },
-      data: {
-        startTime: parsedStartTime,
-        endTime: parsedEndTime,
-        isAvailable: isAvailable !== undefined ? isAvailable : currentTimeSlot.isAvailable,
-      },
-      include: {
-        provider: true,
-      },
-    });
+    // Update the time slot using the utility function
+    const updatedData = {
+      startTime: parsedStartTime,
+      endTime: parsedEndTime,
+      isAvailable: isAvailable !== undefined ? isAvailable : currentTimeSlot.isAvailable,
+    };
     
-    return res.status(200).json(updatedTimeSlot);
+    const updatedTimeSlot = await updateTimeSlotDB(id, updatedData);
+    
+    // Get the provider data
+    const provider = await getProviderById(updatedTimeSlot.providerId);
+    
+    // Create the response with the provider included
+    const response = {
+      ...updatedTimeSlot,
+      provider
+    };
+    
+    return res.status(200).json(response);
   } catch (error) {
     console.error(`Error updating time slot ${id}:`, error);
     return res.status(500).json({ error: 'Failed to update time slot' });
@@ -144,22 +149,41 @@ async function updateTimeSlot(req: NextApiRequest, res: NextApiResponse, id: str
 async function deleteTimeSlot(req: NextApiRequest, res: NextApiResponse, id: string) {
   try {
     // Check if the time slot exists
-    const timeSlot = await prisma.timeSlot.findUnique({
-      where: { id },
-    });
+    const timeSlot = await getTimeSlotById(id);
     
     if (!timeSlot) {
       return res.status(404).json({ error: 'Time slot not found' });
     }
     
-    // Check if the time slot is associated with any appointments
-    // For simplicity, we're not actually checking this since our model doesn't directly associate appointments with time slots
-    // However, in a real implementation, you might want to ensure this check
+    // Check for appointments that might be scheduled in this time slot
+    // While we don't have a direct relation, we can check for overlapping appointments
+    const appointments = await db.appointments
+      .where('providerId')
+      .equals(timeSlot.providerId)
+      .and(appointment => {
+        const apptStart = new Date(appointment.startTime);
+        const apptEnd = new Date(appointment.endTime);
+        const slotStart = new Date(timeSlot.startTime);
+        const slotEnd = new Date(timeSlot.endTime);
+        
+        // Check if the appointment overlaps with this time slot
+        const overlaps = (
+          (apptStart <= slotEnd && apptEnd >= slotStart) &&
+          (appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED')
+        );
+        
+        return overlaps;
+      })
+      .toArray();
     
-    // Delete the time slot
-    await prisma.timeSlot.delete({
-      where: { id },
-    });
+    if (appointments.length > 0) {
+      return res.status(400).json({ 
+        error: 'Cannot delete time slot with scheduled or confirmed appointments' 
+      });
+    }
+    
+    // Delete the time slot using the utility function
+    await deleteTimeSlotDB(id);
     
     return res.status(200).json({ message: 'Time slot deleted successfully' });
   } catch (error) {

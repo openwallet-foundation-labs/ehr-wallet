@@ -1,9 +1,8 @@
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-// Models are accessed via prisma.modelName (camelCase)
+import { getUserByEmail } from '@/lib/db-utils';
+import { initDatabase } from '@/lib/db';
 
 // Extend the default session type to include our custom properties
 declare module 'next-auth' {
@@ -23,7 +22,6 @@ declare module 'next-auth' {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -71,50 +69,17 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // First try using prisma client for better error reporting
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email,
-            },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              password: true,
-              role: true,
-            },
-          });
-
-          // Fallback to raw query if needed
+          // Ensure the database is initialized
+          await initDatabase();
+          
+          // Find the user by email
+          const user = await getUserByEmail(credentials.email);
+          
           if (!user) {
-            console.log('User not found with client, trying raw query');
-            const users = await prisma.$queryRaw`SELECT * FROM "User" WHERE email = ${credentials.email} LIMIT 1`;
-            const userRecord = users[0] as { id: string; email: string; name: string | null; password: string; role: string };
-            
-            if (!userRecord || !userRecord.password) {
-              console.error('User not found with raw query');
-              return null;
-            }
-            
-            const isPasswordValid = await bcrypt.compare(
-              credentials.password,
-              userRecord.password
-            );
-            
-            if (!isPasswordValid) {
-              console.error('Invalid password with raw query');
-              return null;
-            }
-            
-            return {
-              id: userRecord.id,
-              email: userRecord.email,
-              name: userRecord.name || null,
-              role: userRecord.role,
-            };
+            console.error('User not found');
+            return null;
           }
           
-          // Normal flow with user found via client
           if (!user.password) {
             console.error('User found but no password');
             return null;

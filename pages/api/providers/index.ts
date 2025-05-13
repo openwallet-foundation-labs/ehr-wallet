@@ -1,12 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getAllProviders, createProvider, getProviderByEmail } from '@/lib/db-utils';
+import { initDatabase } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure the database is initialized
+  await initDatabase();
+  
   switch (req.method) {
     case 'GET':
       return await getProviders(req, res);
     case 'POST':
-      return await createProvider(req, res);
+      return await createNewProvider(req, res);
     default:
       res.setHeader('Allow', ['GET', 'POST']);
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
@@ -16,10 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Get all providers
 async function getProviders(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const providers = await prisma.provider.findMany({
-      orderBy: { name: 'asc' },
-    });
-    
+    const providers = await getAllProviders();
     return res.status(200).json(providers);
   } catch (error) {
     console.error('Error fetching providers:', error);
@@ -28,7 +29,7 @@ async function getProviders(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Create a new provider
-async function createProvider(req: NextApiRequest, res: NextApiResponse) {
+async function createNewProvider(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { name, specialty, email, phone } = req.body;
     
@@ -38,22 +39,18 @@ async function createProvider(req: NextApiRequest, res: NextApiResponse) {
     }
     
     // Check if a provider with this email already exists
-    const existingProvider = await prisma.provider.findUnique({
-      where: { email },
-    });
+    const existingProvider = await getProviderByEmail(email);
     
     if (existingProvider) {
       return res.status(400).json({ error: 'A provider with this email already exists' });
     }
     
-    // Create the provider
-    const provider = await prisma.provider.create({
-      data: {
-        name,
-        specialty: specialty || null,
-        email,
-        phone: phone || null,
-      },
+    // Create the provider using the utility function
+    const provider = await createProvider({
+      name,
+      specialty: specialty || null,
+      email,
+      phone: phone || null,
     });
     
     return res.status(201).json(provider);

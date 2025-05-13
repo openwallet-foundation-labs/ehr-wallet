@@ -1,38 +1,26 @@
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { execSync } from 'child_process';
+import { initDatabase } from '@/lib/db';
+import { getUserByEmail, createUser } from '@/lib/db-utils';
 
-// Regenerate Prisma client to ensure it includes the User model
-try {
-  console.log('Regenerating Prisma client...');
-  execSync('npx prisma generate', { stdio: 'inherit' });
-  console.log('Prisma client regenerated successfully');
-} catch (error) {
-  console.error('Error regenerating Prisma client:', error);
-  process.exit(1);
-}
-
-// prisma client is already instantiated in @/lib/prisma
+// Initialize the Dexie database
+console.log('Initializing Dexie database...');
 
 async function main() {
   try {
+    // Initialize the database
+    await initDatabase();
+    
     // Check if admin user already exists
-    const adminExists = await prisma.user.findUnique({
-      where: {
-        email: 'admin@globalrad.cloud',
-      },
-    });
+    const adminExists = await getUserByEmail('admin@globalrad.cloud');
 
     if (!adminExists) {
       // Create default admin user
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      await prisma.user.create({
-        data: {
-          name: 'System Administrator',
-          email: 'admin@globalrad.cloud',
-          password: hashedPassword,
-          role: 'ADMIN',
-        },
+      await createUser({
+        name: 'System Administrator',
+        email: 'admin@globalrad.cloud',
+        password: hashedPassword,
+        role: 'ADMIN',
       });
       console.log('Default admin user created');
     } else {
@@ -45,11 +33,10 @@ async function main() {
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
+  .then(() => {
+    console.log('Seed process completed');
   })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error(e);
-    await prisma.$disconnect();
     process.exit(1);
   });

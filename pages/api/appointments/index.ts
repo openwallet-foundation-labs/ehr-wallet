@@ -1,12 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getAllAppointments, createAppointment, getPatientById, getProviderById, getAppointmentTypeById } from '@/lib/db-utils';
+import { initDatabase, db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure the database is initialized
+  await initDatabase();
+  
   switch (req.method) {
     case 'GET':
       return await getAppointments(req, res);
     case 'POST':
-      return await createAppointment(req, res);
+      return await createNewAppointment(req, res);
     default:
       res.setHeader('Allow', ['GET', 'POST']);
       return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
@@ -25,58 +29,86 @@ async function getAppointments(req: NextApiRequest, res: NextApiResponse) {
       status 
     } = req.query;
     
-    // Build the query filter
-    const filter: any = {};
+    // Get all appointments and filter in memory
+    let appointments = await getAllAppointments();
     
-    // Filter by associations
+    // Apply filters
     if (patientId && typeof patientId === 'string') {
-      filter.patientId = patientId;
+      appointments = appointments.filter(a => a.patientId === patientId);
     }
     
     if (providerId && typeof providerId === 'string') {
-      filter.providerId = providerId;
+      appointments = appointments.filter(a => a.providerId === providerId);
     }
     
     if (appointmentTypeId && typeof appointmentTypeId === 'string') {
-      filter.appointmentTypeId = appointmentTypeId;
+      appointments = appointments.filter(a => a.appointmentTypeId === appointmentTypeId);
     }
     
     // Filter by date range
-    if (startDate || endDate) {
-      filter.startTime = {};
-      
-      if (startDate && typeof startDate === 'string') {
-        filter.startTime.gte = new Date(startDate);
-      }
-      
-      if (endDate && typeof endDate === 'string') {
-        filter.startTime.lte = new Date(endDate);
-      }
+    if (startDate && typeof startDate === 'string') {
+      const startDateObj = new Date(startDate);
+      appointments = appointments.filter(a => new Date(a.startTime) >= startDateObj);
+    }
+    
+    if (endDate && typeof endDate === 'string') {
+      const endDateObj = new Date(endDate);
+      appointments = appointments.filter(a => new Date(a.startTime) <= endDateObj);
     }
     
     // Filter by status
     if (status && typeof status === 'string') {
       if (status === 'ACTIVE') {
         // Special case for active appointments (scheduled or confirmed)
-        filter.status = { in: ['SCHEDULED', 'CONFIRMED'] };
+        appointments = appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'CONFIRMED');
       } else {
-        filter.status = status;
+        appointments = appointments.filter(a => a.status === status);
       }
     }
     
-    const appointments = await prisma.appointment.findMany({
-      where: filter,
-      include: {
-        patient: true,
-        provider: true,
-        appointmentType: true,
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
+    // Sort by start time ascending
+    appointments.sort((a, b) => {
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
     
-    return res.status(200).json(appointments);
+    // Include related data - get patients, providers, and appointment types
+    const patientIds = [...new Set(appointments.map(a => a.patientId))];
+    const providerIds = [...new Set(appointments.map(a => a.providerId))];
+    const appointmentTypeIds = [...new Set(appointments.map(a => a.appointmentTypeId).filter(Boolean))];
+    
+    const patients = await db.patients.where('id').anyOf(patientIds).toArray();
+    const providers = await db.providers.where('id').anyOf(providerIds).toArray();
+    const appointmentTypes = appointmentTypeIds.length > 0 
+      ? await db.appointmentTypes.where('id').anyOf(appointmentTypeIds).toArray() 
+      : [];
+    
+    // Create a lookup map for each related entity
+    const patientsMap = patients.reduce((acc, patient) => {
+      acc[patient.id] = patient;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    const providersMap = providers.reduce((acc, provider) => {
+      acc[provider.id] = provider;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    const appointmentTypesMap = appointmentTypes.reduce((acc, type) => {
+      acc[type.id] = type;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // Enrich appointments with related entities
+    const enrichedAppointments = appointments.map(appointment => {
+      return {
+        ...appointment,
+        patient: patientsMap[appointment.patientId],
+        provider: providersMap[appointment.providerId],
+        appointmentType: appointment.appointmentTypeId ? appointmentTypesMap[appointment.appointmentTypeId] : null
+      };
+    });
+    
+    return res.status(200).json(enrichedAppointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return res.status(500).json({ error: 'Failed to fetch appointments' });
@@ -84,7 +116,7 @@ async function getAppointments(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Create a new appointment
-async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
+async function createNewAppointment(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { 
       title, 
@@ -105,17 +137,13 @@ async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
     }
     
     // Validate patient and provider exist
-    const patient = await prisma.patient.findUnique({
-      where: { id: patientId },
-    });
+    const patient = await getPatientById(patientId);
     
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
     
-    const provider = await prisma.provider.findUnique({
-      where: { id: providerId },
-    });
+    const provider = await getProviderById(providerId);
     
     if (!provider) {
       return res.status(404).json({ error: 'Provider not found' });
@@ -123,9 +151,7 @@ async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
     
     // Validate appointment type if provided
     if (appointmentTypeId) {
-      const appointmentType = await prisma.appointmentType.findUnique({
-        where: { id: appointmentTypeId },
-      });
+      const appointmentType = await getAppointmentTypeById(appointmentTypeId);
       
       if (!appointmentType) {
         return res.status(404).json({ error: 'Appointment type not found' });
@@ -144,35 +170,28 @@ async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'End time must be after start time' });
     }
     
+    // Get all active appointments
+    const appointments = await db.appointments.toArray();
+    const activeAppointments = appointments.filter(a => 
+      (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
+    );
+    
     // Check for overlapping appointments for the provider
-    const overlappingProviderAppointments = await prisma.appointment.findMany({
-      where: {
-        providerId,
-        status: { in: ['SCHEDULED', 'CONFIRMED'] },
-        OR: [
-          {
-            // New start time is within an existing appointment
-            AND: [
-              { startTime: { lte: parsedStartTime } },
-              { endTime: { gt: parsedStartTime } },
-            ],
-          },
-          {
-            // New end time is within an existing appointment
-            AND: [
-              { startTime: { lt: parsedEndTime } },
-              { endTime: { gte: parsedEndTime } },
-            ],
-          },
-          {
-            // New appointment completely contains an existing appointment
-            AND: [
-              { startTime: { gte: parsedStartTime } },
-              { endTime: { lte: parsedEndTime } },
-            ],
-          },
-        ],
-      },
+    const overlappingProviderAppointments = activeAppointments.filter(a => {
+      if (a.providerId !== providerId) return false;
+      
+      // Check for any overlap
+      const existingStart = new Date(a.startTime);
+      const existingEnd = new Date(a.endTime);
+      
+      return (
+        // New start time is within an existing appointment
+        (existingStart <= parsedStartTime && existingEnd > parsedStartTime) ||
+        // New end time is within an existing appointment
+        (existingStart < parsedEndTime && existingEnd >= parsedEndTime) ||
+        // New appointment completely contains an existing appointment
+        (parsedStartTime <= existingStart && parsedEndTime >= existingEnd)
+      );
     });
     
     if (overlappingProviderAppointments.length > 0) {
@@ -182,34 +201,21 @@ async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
     }
     
     // Check for overlapping appointments for the patient
-    const overlappingPatientAppointments = await prisma.appointment.findMany({
-      where: {
-        patientId,
-        status: { in: ['SCHEDULED', 'CONFIRMED'] },
-        OR: [
-          {
-            // New start time is within an existing appointment
-            AND: [
-              { startTime: { lte: parsedStartTime } },
-              { endTime: { gt: parsedStartTime } },
-            ],
-          },
-          {
-            // New end time is within an existing appointment
-            AND: [
-              { startTime: { lt: parsedEndTime } },
-              { endTime: { gte: parsedEndTime } },
-            ],
-          },
-          {
-            // New appointment completely contains an existing appointment
-            AND: [
-              { startTime: { gte: parsedStartTime } },
-              { endTime: { lte: parsedEndTime } },
-            ],
-          },
-        ],
-      },
+    const overlappingPatientAppointments = activeAppointments.filter(a => {
+      if (a.patientId !== patientId) return false;
+      
+      // Check for any overlap
+      const existingStart = new Date(a.startTime);
+      const existingEnd = new Date(a.endTime);
+      
+      return (
+        // New start time is within an existing appointment
+        (existingStart <= parsedStartTime && existingEnd > parsedStartTime) ||
+        // New end time is within an existing appointment
+        (existingStart < parsedEndTime && existingEnd >= parsedEndTime) ||
+        // New appointment completely contains an existing appointment
+        (parsedStartTime <= existingStart && parsedEndTime >= existingEnd)
+      );
     });
     
     if (overlappingPatientAppointments.length > 0) {
@@ -218,41 +224,29 @@ async function createAppointment(req: NextApiRequest, res: NextApiResponse) {
       });
     }
     
-    // Create the appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        title,
-        patientId,
-        providerId,
-        appointmentTypeId: appointmentTypeId || null,
-        startTime: parsedStartTime,
-        endTime: parsedEndTime,
-        notes: notes || null,
-        status: status || 'SCHEDULED',
-      },
-      include: {
-        patient: true,
-        provider: true,
-        appointmentType: true,
-      },
-    });
+    // Create the appointment using the utility function
+    const appointmentData = {
+      title,
+      patientId,
+      providerId,
+      appointmentTypeId: appointmentTypeId || null,
+      startTime: parsedStartTime,
+      endTime: parsedEndTime,
+      notes: notes || null,
+      status: status || 'SCHEDULED',
+    };
     
-    // If there's a time slot that corresponds to this appointment, mark it as unavailable
-    // This is a simplification - in a real system, you might want to handle this differently
-    // or even have a direct relation between appointments and time slots
-    await prisma.timeSlot.updateMany({
-      where: {
-        providerId,
-        startTime: parsedStartTime,
-        endTime: parsedEndTime,
-        isAvailable: true,
-      },
-      data: {
-        isAvailable: false,
-      },
-    });
+    const appointment = await createAppointment(appointmentData);
     
-    return res.status(201).json(appointment);
+    // Get related entities to include in response
+    const enrichedAppointment = {
+      ...appointment,
+      patient,
+      provider,
+      appointmentType: appointmentTypeId ? await getAppointmentTypeById(appointmentTypeId) : null
+    };
+    
+    return res.status(201).json(enrichedAppointment);
   } catch (error) {
     console.error('Error creating appointment:', error);
     return res.status(500).json({ error: 'Failed to create appointment' });

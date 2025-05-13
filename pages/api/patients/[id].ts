@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getPatientById, updatePatient as updatePatientDB, deletePatient as deletePatientDB } from '@/lib/db-utils';
+import { initDatabase, db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure the database is initialized
+  await initDatabase();
+  
   const { id } = req.query;
   
   if (!id || typeof id !== 'string') {
@@ -31,18 +35,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Get a single patient by ID
 async function getPatient(id: string, res: NextApiResponse) {
   try {
-    const patient = await prisma.patient.findUnique({
-      where: { patientId: id },
-      include: {
-        visits: {
-          orderBy: { date: 'desc' },
-        },
-      },
-    });
+    const patient = await getPatientById(id);
 
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
+
+    // Get visits for this patient
+    const visits = await db.visits
+      .where('patientId')
+      .equals(patient.id)
+      .toArray();
+    
+    // Sort visits by date (newest first)
+    visits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Format the response to match the expected data structure
     const formattedPatient = {
@@ -53,9 +59,9 @@ async function getPatient(id: string, res: NextApiResponse) {
       phone: patient.phone || '',
       email: patient.email || '',
       address: patient.address || '',
-      visits: patient.visits.map(visit => ({
+      visits: visits.map(visit => ({
         id: visit.id,
-        date: visit.date.toISOString(),
+        date: new Date(visit.date).toISOString(),
         notes: visit.notes || '',
       })),
     };
@@ -78,25 +84,20 @@ async function updatePatient(id: string, req: NextApiRequest, res: NextApiRespon
     }
 
     // Check if the patient exists
-    const existingPatient = await prisma.patient.findUnique({
-      where: { patientId: id },
-    });
+    const existingPatient = await getPatientById(id);
 
     if (!existingPatient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
-    // Update the patient
-    const patient = await prisma.patient.update({
-      where: { patientId: id },
-      data: {
-        name,
-        dob,
-        gender,
-        phone: phone || null,
-        email: email || null,
-        address: address || null,
-      },
+    // Update the patient using the utility function
+    const patient = await updatePatientDB(id, {
+      name,
+      dob,
+      gender,
+      phone: phone || null,
+      email: email || null,
+      address: address || null,
     });
 
     return res.status(200).json({
@@ -118,18 +119,14 @@ async function updatePatient(id: string, req: NextApiRequest, res: NextApiRespon
 async function deletePatient(id: string, res: NextApiResponse) {
   try {
     // Check if the patient exists
-    const existingPatient = await prisma.patient.findUnique({
-      where: { patientId: id },
-    });
+    const existingPatient = await getPatientById(id);
 
     if (!existingPatient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
-    // Delete the patient
-    await prisma.patient.delete({
-      where: { patientId: id },
-    });
+    // Delete the patient using the utility function
+    await deletePatientDB(id);
 
     return res.status(204).end();
   } catch (error) {
