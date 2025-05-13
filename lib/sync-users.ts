@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, UserType } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 
@@ -16,13 +16,25 @@ export async function syncUserToOfflineDB(userData: {
     
     if (existingUser) {
       // Update existing user
-      await db.users.update(existingUser.id, {
+      // Ensure role is typed correctly as a valid UserType role
+      const role = userData.role as 'ADMIN' | 'DOCTOR' | 'STAFF';
+      
+      // Create a properly typed update object
+      const updateData: Partial<UserType> = {
         name: userData.name,
-        role: userData.role,
-        // Don't update password if not provided
-        ...(userData.password && { password: userData.password }),
-        updatedAt: new Date()
-      });
+        role: role
+      };
+      
+      // Add password only if provided
+      if (userData.password) {
+        updateData.password = userData.password;
+      }
+      
+      // Add updatedAt
+      updateData.updatedAt = new Date();
+      
+      // Perform the update with properly typed data
+      await db.users.update(existingUser.id, updateData);
       
       return { success: true, message: 'User updated in offline database' };
     } else {
@@ -37,7 +49,7 @@ export async function syncUserToOfflineDB(userData: {
         name: userData.name,
         email: userData.email,
         password: userData.password,
-        role: userData.role,
+        role: userData.role as 'ADMIN' | 'DOCTOR' | 'STAFF',
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -77,20 +89,24 @@ export async function registerOfflineUser(userData: {
       name: userData.name,
       email: userData.email,
       password: hashedPassword,
-      role: userData.role,
+      role: userData.role as 'ADMIN' | 'DOCTOR' | 'STAFF',
       createdAt: new Date(),
       updatedAt: new Date()
     });
     
     // Return success with user data (excluding password)
-    const { password, ...userWithoutPassword } = {
+    const userDataWithPassword = {
       id,
       name: userData.name,
       email: userData.email,
-      role: userData.role,
+      role: userData.role as 'ADMIN' | 'DOCTOR' | 'STAFF',
+      password: hashedPassword, // Include password so we can exclude it
       createdAt: new Date(),
       updatedAt: new Date()
     };
+    
+    // Destructure to remove password
+    const { password, ...userWithoutPassword } = userDataWithPassword;
     
     return { 
       success: true, 
