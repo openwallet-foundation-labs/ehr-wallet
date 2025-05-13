@@ -7,18 +7,17 @@ libs = ["sqlite"]  # SQLite support for database
 
 [phases.install]
 cmds = [
-  "npm install -g pnpm@9",
-  "pnpm install --frozen-lockfile"
+  "npm ci"
 ]
 
 [phases.build]
 cmds = [
-  "pnpm exec prisma generate", 
-  "pnpm build"
+  "npx prisma generate", 
+  "npm run build"
 ]
 
 [start]
-cmd = "pnpm start"
+cmd = "npm start"
 
 [variables]
 NODE_ENV = "production"
