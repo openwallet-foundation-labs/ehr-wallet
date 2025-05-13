@@ -7,6 +7,7 @@ import { MobileNav } from "./MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TouchSwipe } from "@/components/ui/touch-swipe";
+import SyncManager from "@/components/SyncManager";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -81,6 +82,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       
       {/* Mobile Bottom Navigation - only visible on mobile */}
       {isMobile && <MobileBottomNav />}
+      
+      {/* Sync Manager for offline data synchronization */}
+      <SyncManager />
     </div>
   );
 };

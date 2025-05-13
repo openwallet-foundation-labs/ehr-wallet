@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -33,6 +33,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import { useRouter } from "next/router";
+import { registerPatient } from "@/services/patientService";
+import { initDatabase } from "@/lib/db";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const patientFormSchema = z.object({
@@ -63,6 +66,29 @@ type PatientFormValues = z.infer<typeof patientFormSchema>;
 
 export const PatientForm = () => {
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  
+  // Initialize database
+  useEffect(() => {
+    initDatabase();
+    
+    // Check online status
+    setIsOnline(navigator.onLine);
+    
+    // Set up event listeners for online/offline status
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   const defaultValues: Partial<PatientFormValues> = {
     firstName: "",
@@ -91,17 +117,66 @@ export const PatientForm = () => {
     defaultValues,
   });
 
-  const onSubmit = (data: PatientFormValues) => {
-    console.log("Patient data submitted:", data);
-    toast({
-      title: "Patient registered successfully",
-      description: `${data.firstName} ${data.lastName} has been registered.`,
-    });
-    // In a real app, you would send this data to your API here
+  const onSubmit = async (data: PatientFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Format data for patient registration
+      const patientData = {
+        name: `${data.firstName} ${data.lastName}`,
+        dob: data.dateOfBirth.toISOString().split('T')[0],
+        gender: data.gender,
+        phone: data.phone,
+        email: data.email || null,
+        address: `${data.address.street}, ${data.address.city}, ${data.address.state} ${data.address.zipCode}`
+      };
+      
+      // Register patient using Dexie service
+      const result = await registerPatient(patientData);
+      
+      // Show success message
+      toast({
+        title: "Patient registered successfully",
+        description: isOnline ? 
+          `${data.firstName} ${data.lastName} has been registered.` :
+          `${data.firstName} ${data.lastName} has been saved locally and will sync when online.`,
+      });
+      
+      // Redirect to patient list after short delay
+      setTimeout(() => {
+        router.push('/PatientList');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error registering patient:', error);
+      toast({
+        title: "Registration failed",
+        description: "There was an error registering the patient. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Form {...form}>
+      {!isOnline && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700">
+                You are currently offline. Patient data will be saved locally and synced when connection is restored.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-6">
@@ -439,7 +514,13 @@ export const PatientForm = () => {
 
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="bg-medical-blue hover:bg-medical-blue/90">Register Patient</Button>
+          <Button 
+            type="submit" 
+            className="bg-medical-blue hover:bg-medical-blue/90" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Registering..." : "Register Patient"}
+          </Button>
         </div>
       </form>
     </Form>
