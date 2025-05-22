@@ -19,6 +19,7 @@ const customJestConfig = {
   testMatch: [
     '**/__tests__/**/*.test.[jt]s?(x)',
     '**/components/**/*.test.[jt]s?(x)',
+    '**/pages/api/**/*.test.[jt]s?(x)',
   ],
 };
 
