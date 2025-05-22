@@ -18,7 +18,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     "/ScheduleExam",
     "/settings",
     "/patients/register",
-    "/patients"
+    "/patients",
+    "/analytics"
     // Add other pages that should use the MainLayout
   ];
   

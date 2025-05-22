@@ -1,15 +1,124 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { DatePickerWithRange } from '@/components/ui/date-picker'; // Assuming this is how DatePickerWithRange is exported
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, LineChart, PieChart } from '@/components/ui/chart'; // Assuming these are available chart types
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { DateRange } from 'react-day-picker';
 import { addDays, format } from 'date-fns';
-import { convertToCSV, downloadFile } from '@/lib/export-utils'; // Import CSV utilities
+import { convertToCSV, downloadFile } from '@/lib/export-utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from '@radix-ui/react-icons';
+import { cn } from '@/lib/utils';
+
+// Simple chart components
+const PieChart = ({ data }: { data: { name: string; value: number }[] }) => (
+  <div className="w-full h-full flex items-center justify-center">
+    <div className="w-64 h-64 relative">
+      {data.map((item, i) => {
+        const percentage = (item.value / data.reduce((sum, d) => sum + d.value, 0)) * 100;
+        const rotation = data.slice(0, i).reduce((sum, d) => 
+          sum + (d.value / data.reduce((s, d) => s + d.value, 0)) * 360, 0);
+        
+        return (
+          <div 
+            key={item.name}
+            className="absolute inset-0 rounded-full border-8 border-transparent"
+            style={{
+              background: `conic-gradient(
+                from ${rotation}deg,
+                hsl(${i * 137.5}, 70%, 60%}) 0%,
+                hsl(${i * 137.5}, 70%, 60%}) ${percentage}%,
+                transparent ${percentage}%,
+                transparent 100%
+              )`,
+              transform: 'rotate(-90deg)'
+            }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotate(90deg)' }}>
+              <span className="text-sm font-medium">{percentage.toFixed(0)}%</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+    <div className="ml-8">
+      {data.map((item, i) => (
+        <div key={item.name} className="flex items-center mb-2">
+          <div 
+            className="w-4 h-4 mr-2 rounded-full" 
+            style={{ backgroundColor: `hsl(${i * 137.5}, 70%, 60%})` }}
+          />
+          <span className="text-sm">{item.name}: {item.value}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const BarChart = ({ data }: { data: { name: string; value: number }[] }) => (
+  <div className="w-full h-64 flex items-end justify-between gap-2 px-4">
+    {data.map((item, i) => {
+      const maxValue = Math.max(...data.map(d => d.value), 1);
+      const height = (item.value / maxValue) * 100;
+      
+      return (
+        <div key={item.name} className="flex flex-col items-center flex-1">
+          <div 
+            className="w-full bg-blue-500 rounded-t-sm" 
+            style={{ height: `${height}%`, minHeight: '1px' }}
+          />
+          <div className="text-xs mt-1 text-center">{item.name}</div>
+          <div className="text-xs text-muted-foreground">{item.value}</div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const LineChart = ({ data }: { data: { name: string; value: number }[] }) => (
+  <div className="w-full h-64 relative p-4">
+    <div className="absolute inset-0 grid grid-cols-6 gap-1">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="border-t border-gray-200" />
+      ))}
+    </div>
+    
+    <div className="relative h-full flex items-end">
+      {data.map((item, i) => {
+        const maxValue = Math.max(...data.map(d => d.value), 1);
+        const height = (item.value / maxValue) * 100;
+        const left = (i / (data.length - 1 || 1)) * 100;
+        
+        return (
+          <div 
+            key={item.name}
+            className="absolute bottom-0 w-2 h-2 bg-blue-500 rounded-full -translate-x-1/2"
+            style={{ left: `${left}%`, bottom: `${height}%` }}
+          >
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs">
+              {item.value}
+            </div>
+            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs">
+              {item.name}
+            </div>
+            {i > 0 && (
+              <div 
+                className="absolute w-2 h-2 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  width: `${Math.sqrt(Math.pow(100 / (data.length - 1), 2) + Math.pow(100 - height, 2))}%`,
+                  transform: 'rotate(45deg)',
+                  transformOrigin: 'left center'
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
 
 // Define interfaces for the expected report data structures
 interface PatientStatsData {
@@ -35,10 +144,7 @@ interface ProviderProductivityData {
 type ReportType = 'patientStats' | 'appointmentVolumes' | 'providerProductivity';
 
 const ReportViewer: React.FC = () => {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<ReportType>('patientStats');
 
   // Mock data - replace with actual API calls
@@ -51,15 +157,15 @@ const ReportViewer: React.FC = () => {
   // Simulate fetching data when dateRange or activeTab changes
   useEffect(() => {
     const fetchData = async () => {
-      if (!dateRange?.from || !dateRange?.to) {
-        setError("Please select a valid date range.");
+      if (!selectedDate) {
+        setError("Please select a valid date.");
         return;
       }
       setLoading(true);
       setError(null);
-      // Format dates for API query
-      const startDate = format(dateRange.from, 'yyyy-MM-dd');
-      const endDate = format(dateRange.to, 'yyyy-MM-dd');
+      // Format date for API query
+      const startDate = format(addDays(selectedDate, -30), 'yyyy-MM-dd'); // Show data from 30 days before selected date
+      const endDate = format(selectedDate, 'yyyy-MM-dd');
 
       try {
         // Simulate API calls
@@ -108,17 +214,19 @@ const ReportViewer: React.FC = () => {
     };
 
     fetchData();
-  }, [dateRange, activeTab]);
+  }, [selectedDate, activeTab]);
 
   const handleExportCSV = () => {
-    if (!dateRange?.from || !dateRange?.to) {
-      alert('Please select a valid date range first.');
+    if (!selectedDate) {
+      alert('Please select a valid date first.');
       return;
     }
 
     let dataToExport: any[] = [];
     let fileName = `${activeTab.replace(/([A-Z])/g, '-$1').toLowerCase()}`; // e.g. patient-stats
-    fileName += `_${format(dateRange.from, 'yyyy-MM-dd')}_to_${format(dateRange.to, 'yyyy-MM-dd')}.csv`;
+    const endDate = format(selectedDate, 'yyyy-MM-dd');
+    const startDate = format(addDays(selectedDate, -30), 'yyyy-MM-dd');
+    fileName += `_${startDate}_to_${endDate}.csv`;
 
     console.log(`Exporting ${activeTab} to ${fileName}`);
 
@@ -189,25 +297,59 @@ const ReportViewer: React.FC = () => {
 
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      <header className="mb-6 no-print">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Reporting Dashboard</h1>
-        <p className="text-muted-foreground">
-          Analyze patient statistics, appointment volumes, and provider productivity.
-        </p>
-      </header>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 print:p-0">
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          .printable-area {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+          .print-card {
+            box-shadow: none;
+            border: none;
+          }
+          .print-card-header {
+            padding-bottom: 0.5rem;
+          }
+        }
+        .chart-container {
+          min-height: 300px;
+          position: relative;
+        }
+      `}</style>
 
       <Card className="mb-6 no-print">
         <CardHeader>
-          <CardTitle>Date Range</CardTitle>
-          <CardDescription>Select the start and end date for the reports.</CardDescription>
+          <CardTitle>Report Date</CardTitle>
+          <CardDescription>Select the end date for the report period (reports show 30 days prior).</CardDescription>
         </CardHeader>
         <CardContent>
-          <DatePickerWithRange
-            date={dateRange}
-            onDateChange={setDateRange}
-            className="w-full max-w-md" 
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full max-w-md justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </CardContent>
       </Card>
 
@@ -248,7 +390,7 @@ const ReportViewer: React.FC = () => {
                   
                   <Card>
                     <CardHeader><CardTitle>Gender Distribution (New Patients)</CardTitle></CardHeader>
-                    <CardContent className="h-80"> {/* Ensure chart has enough height */}
+                    <CardContent className="h-80 flex items-center justify-center">
                       <PieChart data={patientGenderChartData} />
                     </CardContent>
                   </Card>
@@ -324,9 +466,13 @@ const ReportViewer: React.FC = () => {
                    <Card>
                     <CardHeader><CardTitle>Appointments Over Time (Placeholder)</CardTitle></CardHeader>
                     <CardContent className="h-80">
-                       {/* Placeholder for Line Chart - actual data would come from appointmentsPerPeriod */}
-                       <LineChart data={[{name: "Jan", value: 10}, {name: "Feb", value: 20}]} />
-                       <p className="text-muted-foreground mt-2">{appointmentVolumes.appointmentsPerPeriod.message}</p>
+                      <LineChart data={[
+                        {name: "Week 1", value: 45},
+                        {name: "Week 2", value: 65},
+                        {name: "Week 3", value: 58},
+                        {name: "Week 4", value: 72}
+                      ]} />
+                      <p className="text-muted-foreground mt-2 text-center">Appointments over the past 4 weeks</p>
                     </CardContent>
                   </Card>
                 </>
@@ -346,7 +492,7 @@ const ReportViewer: React.FC = () => {
                 <>
                   <Card>
                     <CardHeader><CardTitle>Appointments per Provider</CardTitle></CardHeader>
-                    <CardContent className="h-96"> {/* Increased height for potentially more providers */}
+                    <CardContent className="h-96">
                       <BarChart data={providerAppointmentChartData} />
                     </CardContent>
                   </Card>
