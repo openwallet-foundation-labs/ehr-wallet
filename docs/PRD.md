@@ -1,9 +1,9 @@
-# Radiant Flow Imaging Hub - Product Requirements Document
+# GlobalRad RIS - PRD
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-Radiant Flow Imaging Hub is a modern Radiology Information System (RIS) designed to streamline patient management, exam scheduling, and workflow efficiency for radiological practices and imaging centers. This document outlines the functional and technical requirements for the system's ongoing development.
+GlobalRad RIS (Radiology Information System) is designed to streamline patient management, exam scheduling, and workflow efficiency for radiological practices and imaging centers. This document outlines the functional and technical requirements for the system's ongoing development.
 
 ### 1.2 Scope
 This product serves radiologists, technicians, and administrative staff in imaging centers and radiology departments, providing a comprehensive solution for managing patient data, scheduling exams, tracking studies, and facilitating efficient workflows.
@@ -66,17 +66,19 @@ This product serves radiologists, technicians, and administrative staff in imagi
 ### 3.2 Exam Scheduling
 
 #### 3.2.1 Schedule Creation
-- User shall schedule new imaging exams for registered patients
-- User shall select from available modalities (CT, MRI, X-ray, Ultrasound, etc.)
-- User shall specify procedure type, body part, and other exam details
-- User shall select date and time based on availability
-- User shall assign referring physicians and radiologists
+- User can schedule new imaging exams for registered patients
+- User can select from available providers with their specialties
+- User can choose from predefined appointment types
+- System enforces time slot availability and prevents double-booking
+- User can assign patients to specific time slots with providers
 
 #### 3.2.2 Schedule Management
-- User shall view a complete schedule organized by date
-- User shall filter schedule by modality, priority, or status
-- User shall reschedule or cancel existing appointments
-- System shall prevent scheduling conflicts
+- Complete schedule view organized by date and provider
+- Filtering by provider, appointment type, and date range
+- Rescheduling and cancellation of existing appointments
+- Real-time conflict detection and prevention
+- Provider-specific time slot management
+- Recurring appointment support
 
 ### 3.3 Dashboard and Analytics
 
@@ -94,11 +96,13 @@ This product serves radiologists, technicians, and administrative staff in imagi
 ## 4. Technical Requirements
 
 ### 4.1 Platform and Architecture
-- System shall be built using Next.js framework (migrated from Vite)
-- System shall utilize React for frontend components
-- System shall implement a modern UI library (shadcn-ui)
-- System shall be styled using Tailwind CSS
-- System shall leverage Prisma for database interactions
+- System is built using Next.js framework (migrated from Vite)
+- System utilizes React for frontend components with TypeScript
+- System implements shadcn-ui for modern UI components
+- System is styled using Tailwind CSS
+- System uses Prisma ORM for database interactions
+- System implements SQLite as the database solution
+- System includes authentication and session management
 
 ### 4.2 Database Requirements
 - System shall store patient demographic data
@@ -139,21 +143,35 @@ This product serves radiologists, technicians, and administrative staff in imagi
 - Form elements shall include proper labeling for screen readers
 - Interactive elements shall have appropriate focus states
 
-## 6. Future Roadmap
+## 6. Roadmap (MOSCOW Prioritization)
 
-### 6.1 Planned Enhancements
-- Integration with imaging equipment for direct image acquisition
-- Advanced reporting tools with speech-to-text capabilities
-- Mobile application for on-call radiologists
-- Automated patient reminders for upcoming appointments
-- AI-assisted image analysis integration options
+### Must Have (M)
+- Complete patient management system with CRUD operations
+- Comprehensive scheduling system with provider and appointment type management
+- Date-based filtering for patient lists (Last Visit/DOB)
+- User authentication and role-based access control
+- Basic reporting and dashboard with key metrics
 
-### 6.2 Potential Features
-- Patient portal for self-scheduling and result access
+### Should Have (S)
+- Patient document/image upload and management
+- Email/SMS notifications for appointments
+- Integration with PACS (Picture Archiving and Communication System)
+- Advanced search and filtering capabilities
+- Export functionality for reports and data
+
+### Could Have (C)
+- Patient portal for self-scheduling and results access
+- Mobile application for on-call staff
+- Speech-to-text for report generation
 - Billing and insurance verification modules
-- Resource utilization tracking and optimization
-- Integration with teleradiology platforms
-- Advanced analytics and business intelligence dashboards
+- Resource utilization tracking
+
+### Won't Have (W) - For Now
+- AI-assisted image analysis integration
+- Teleradiology platform integration
+- Advanced business intelligence dashboards
+- Custom report builder
+- Multi-location support
 
 ## 7. Success Metrics
 
@@ -171,6 +189,5 @@ This product serves radiologists, technicians, and administrative staff in imagi
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: May 11, 2025*
-*Author: Radiant Flow Imaging Hub Development Team*
+*Document Version: 1.1*  
+*Last Updated: May 21, 2025*

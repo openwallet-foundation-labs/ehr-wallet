@@ -47,7 +47,7 @@ This project is built with:
 - **Next.js**: React framework for production-grade applications
 - **TypeScript**: For type safety and better developer experience
 - **Prisma**: ORM for database access
-- **SQLite**: Lightweight database for development
+- **Dexie.js**: IndexedDB wrapper for database access
 - **shadcn/ui**: Component library
 - **Tailwind CSS**: Utility-first CSS framework
 - **NextAuth.js**: Authentication solution
