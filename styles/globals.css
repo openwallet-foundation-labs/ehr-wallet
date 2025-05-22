@@ -1,6 +1,202 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Print-specific styles */
+@media print {
+  body {
+    font-family: sans-serif;
+    background-color: #fff !important; /* Ensure white background */
+    color: #000 !important; /* Ensure black text */
+    margin: 20px !important; /* Add some margin for printing */
+    -webkit-print-color-adjust: exact !important; /* Chrome, Safari */
+    print-color-adjust: exact !important; /* Standard */
+  }
+
+  /* Hide elements marked with .no-print */
+  .no-print, 
+  .no-print * { /* Ensure all children of no-print are also hidden */
+    display: none !important;
+  }
+
+  /* By default, hide all tab content that isn't the active one.
+     The ReportViewer component already handles showing only the active tab's content for screen.
+     For print, we need to ensure only the selected '.printable-area' is visible if there are multiple.
+     However, since only one TabsContent is rendered as 'active' at a time by the Tabs component,
+     we just need to make sure this active one is styled correctly.
+  */
+  .printable-area {
+    display: block !important; /* Ensure the active report area is visible */
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* General page layout for print */
+  header, footer, nav, aside, form {
+    display: none !important; /* Hide common page elements unless specifically marked for print */
+  }
+
+  /* Ensure the overall dashboard/app layout doesn't interfere */
+  /* These are examples, actual selectors might depend on your app's structure */
+  /* #__next > div > header { display: none !important; } */
+  /* #__next > div > aside { display: none !important; } */
+
+
+  /* Styling for cards and tables within the printable area */
+  .print-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+    padding: 15px !important;
+    page-break-inside: avoid !important; /* Try to keep card content on one page */
+    background-color: #fff !important;
+  }
+
+  .print-card-header {
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  .print-card .card-title, .print-card-header .card-title { /* Assuming CardTitle is a specific component/class */
+    font-size: 16pt !important;
+    color: #000 !important;
+  }
+  
+  .print-card .card-description {
+    font-size: 10pt !important;
+    color: #333 !important;
+  }
+  
+  .print-card p, .print-card .text-3xl {
+    font-size: 12pt !important; /* Adjust font sizes for print */
+    color: #000 !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 10px !important;
+  }
+
+  th, td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+
+  th {
+    background-color: #f0f0f0 !important; /* Light grey for table headers */
+    font-weight: bold !important;
+  }
+
+  /* Chart specific considerations */
+  /* If charts are SVG or canvas, they might print okay.
+     If they rely heavily on background colors, they might need adjustment.
+     This is a general placeholder. Specific chart libraries might need their own print styling. */
+  .recharts-wrapper, .chartjs-render-monitor { /* Common chart library wrappers */
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important; /* Or a fixed print height */
+    page-break-inside: avoid !important;
+  }
+  
+  /* Remove any interactive elements from charts if possible */
+  .recharts-tooltip-wrapper, .chartjs-tooltip {
+    display: none !important;
+  }
+
+  /* Ensure links are not overly styled if not needed */
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+
+  /* Show URL for hrefs when printing (optional) */
+  /* a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #555;
+  } */
+
+  /* Ensure no dark mode styles interfere */
+  .dark, .dark body {
+    --background: 0 0% 100% !important;
+    --foreground: 240 10% 3.9% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 240 10% 3.9% !important;
+    /* ... reset other dark mode variables if necessary */
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Ensure all text is black and backgrounds are white for elements within print-card */
+  .print-card *, .print-card ::before, .print-card ::after {
+    background-color: #fff !important;
+    color: #000 !important;
+    border-color: #ccc !important; /* Lighten borders */
+    box-shadow: none !important;
+  }
+}
  
 @layer base {
   :root {

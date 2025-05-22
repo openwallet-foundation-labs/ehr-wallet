@@ -1,6 +1,7 @@
 
 import { Calendar, User, FileSearch, Clock, BarChart3, Activity } from "lucide-react";
 import { useRouter } from "next/router";
+import { ReportViewer } from "@/components/dashboard/ReportViewer"; // Import ReportViewer
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StudiesTable } from "@/components/dashboard/StudiesTable";
 import { Button } from "@/components/ui/button";
@@ -136,35 +137,7 @@ const Dashboard = () => {
         </TabsContent>
         
         <TabsContent value="analytics" className="mt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <BarChart3 className="mr-2 h-5 w-5 text-primary" />
-                  Study Completion
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-secondary/30 rounded-lg">
-                  <p className="text-muted-foreground">Weekly completion chart</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <Activity className="mr-2 h-5 w-5 text-primary" />
-                  Department Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-secondary/30 rounded-lg">
-                  <p className="text-muted-foreground">Department activity metrics</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <ReportViewer />
         </TabsContent>
       </Tabs>
     </div>
