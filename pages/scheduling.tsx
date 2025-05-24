@@ -149,14 +149,19 @@ const SchedulingContent = () => {
           endDate = format(weekEnd, "yyyy-MM-dd");
         }
         
+        console.log(`Fetching appointments from ${startDate} to ${endDate}`);
+        
         // Fetch appointments from our API
         const response = await fetch(`/api/appointments?startDate=${startDate}&endDate=${endDate}`);
         
         if (!response.ok) {
-          throw new Error(`Failed to fetch appointments: ${response.status}`);
+          const errorText = await response.text();
+          console.error(`API error (${response.status}):`, errorText);
+          throw new Error(`Failed to fetch appointments: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
         }
         
         const data: ApiAppointment[] = await response.json();
+        console.log(`Received ${data.length} appointments from API`);
         const formattedAppointments = formatApiAppointments(data);
         setAppointments(formattedAppointments);
       } catch (err) {

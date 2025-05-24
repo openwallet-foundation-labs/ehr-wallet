@@ -85,7 +85,7 @@ export interface PendingChangeType {
   timestamp: Date;
 }
 
-// Define the database
+// Define the database class
 export class ImagingHubDB extends Dexie {
   users: Dexie.Table<UserType, string>;
   patients: Dexie.Table<PatientType, string>;
@@ -114,12 +114,65 @@ export class ImagingHubDB extends Dexie {
   }
 }
 
-// Create and export a database instance
-export const db = new ImagingHubDB();
+// Create a mock database for server-side rendering
+class MockDB {
+  users = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null }), anyOf: () => ({ toArray: async () => [] }), startsWith: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  patients = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null, delete: async () => {} }), anyOf: () => ({ toArray: async () => [] }), startsWith: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  visits = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null, delete: async () => {} }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  providers = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  appointmentTypes = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  timeSlots = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null, delete: async () => {} }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  appointments = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null, delete: async () => {} }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  pendingChanges = { toArray: async () => [], get: async () => null, where: () => ({ equals: () => ({ first: async () => null }), anyOf: () => ({ toArray: async () => [] }) }), add: async () => {}, update: async () => {}, delete: async () => {} };
+  open = async () => {};
+}
+
+// Singleton pattern to ensure we only create one instance
+let dbInstance: ImagingHubDB | MockDB;
+
+// Create and export a database getter function
+export function getDb(): ImagingHubDB | MockDB {
+  if (typeof window === 'undefined') {
+    // Server-side: return mock DB
+    console.log('Running in server environment, using mock DB');
+    return new MockDB();
+  }
+  
+  if (!dbInstance) {
+    try {
+      // Client-side: create real DB instance
+      dbInstance = new ImagingHubDB();
+    } catch (error) {
+      console.error('Failed to create Dexie database:', error);
+      // Fallback to mock DB if creation fails
+      dbInstance = new MockDB();
+    }
+  }
+  
+  return dbInstance;
+}
+
+// For backward compatibility
+export const db = typeof window === 'undefined' ? new MockDB() as any : new ImagingHubDB();
 
 // Initialize the database when imported
 export async function initDatabase() {
-  // You could perform any initialization here
-  console.log('Dexie database initialized');
-  return db;
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    console.log('Running in server environment, skipping Dexie initialization');
+    return getDb();
+  }
+  
+  try {
+    // Get the database instance
+    const database = getDb() as ImagingHubDB;
+    
+    // Attempt to open the database
+    await database.open();
+    console.log('Dexie database initialized successfully');
+    return database;
+  } catch (error) {
+    console.error('Failed to initialize Dexie database:', error);
+    throw error;
+  }
 }

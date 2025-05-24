@@ -2,6 +2,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getAllPatients, createNewPatient } from '@/lib/db-utils';
 import { initDatabase } from '@/lib/db';
 
+// Add a timeout promise helper
+const timeout = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure the database is initialized
   await initDatabase();
@@ -25,11 +29,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Get all patients
 async function getPatients(req: NextApiRequest, res: NextApiResponse) {
   try {
+    // Add a small delay to ensure database is ready (helps with race conditions)
+    await timeout(100);
+    
+    // Initialize database with retry logic
+    let retries = 3;
+    let db;
+    
+    while (retries > 0) {
+      try {
+        db = await initDatabase();
+        break;
+      } catch (err) {
+        console.warn(`Database initialization attempt failed, ${retries - 1} retries left`);
+        retries--;
+        if (retries === 0) throw err;
+        await timeout(300);
+      }
+    }
+    
     const formattedPatients = await getAllPatients();
     return res.status(200).json(formattedPatients);
   } catch (error) {
     console.error('Error fetching patients:', error);
-    return res.status(500).json({ error: 'Failed to fetch patients' });
+    // Provide more detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ 
+      error: 'Failed to fetch patients', 
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    });
   }
 }
 

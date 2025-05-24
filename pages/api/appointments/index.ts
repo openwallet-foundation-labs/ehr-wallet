@@ -3,17 +3,22 @@ import { getAllAppointments, createAppointment, getPatientById, getProviderById,
 import { initDatabase, db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Ensure the database is initialized
-  await initDatabase();
-  
-  switch (req.method) {
-    case 'GET':
-      return await getAppointments(req, res);
-    case 'POST':
-      return await createNewAppointment(req, res);
-    default:
-      res.setHeader('Allow', ['GET', 'POST']);
-      return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+  try {
+    // Ensure the database is initialized
+    await initDatabase();
+    
+    switch (req.method) {
+      case 'GET':
+        return await getAppointments(req, res);
+      case 'POST':
+        return await createNewAppointment(req, res);
+      default:
+        res.setHeader('Allow', ['GET', 'POST']);
+        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    }
+  } catch (error) {
+    console.error('API handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -30,7 +35,14 @@ async function getAppointments(req: NextApiRequest, res: NextApiResponse) {
     } = req.query;
     
     // Get all appointments and filter in memory
-    let appointments = await getAllAppointments();
+    let appointments;
+    try {
+      appointments = await getAllAppointments();
+      console.log(`Successfully fetched ${appointments.length} appointments`);
+    } catch (dbError) {
+      console.error('Database error when fetching appointments:', dbError);
+      return res.status(500).json({ error: 'Database error when fetching appointments' });
+    }
     
     // Apply filters
     if (patientId && typeof patientId === 'string') {
@@ -74,12 +86,13 @@ async function getAppointments(req: NextApiRequest, res: NextApiResponse) {
     // Include related data - get patients, providers, and appointment types
     const patientIds = [...new Set(appointments.map(a => a.patientId))];
     const providerIds = [...new Set(appointments.map(a => a.providerId))];
-    const appointmentTypeIds = [...new Set(appointments.map(a => a.appointmentTypeId).filter(Boolean))];
+    const appointmentTypeIds = [...new Set(appointments.map(a => a.appointmentTypeId).filter(Boolean) as string[])];
     
-    const patients = await db.patients.where('id').anyOf(patientIds).toArray();
-    const providers = await db.providers.where('id').anyOf(providerIds).toArray();
+    // Type assertion to make TypeScript happy with Dexie's anyOf method
+    const patients = await db.patients.where('id').anyOf(patientIds as string[]).toArray();
+    const providers = await db.providers.where('id').anyOf(providerIds as string[]).toArray();
     const appointmentTypes = appointmentTypeIds.length > 0 
-      ? await db.appointmentTypes.where('id').anyOf(appointmentTypeIds).toArray() 
+      ? await db.appointmentTypes.where('id').anyOf(appointmentTypeIds as string[]).toArray() 
       : [];
     
     // Create a lookup map for each related entity

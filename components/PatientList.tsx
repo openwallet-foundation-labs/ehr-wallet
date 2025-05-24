@@ -46,15 +46,17 @@ const PatientList = () => {
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [isFiltering, setIsFiltering] = useState(false);
   
-  // Fetch patients from the API
+  // Fetch patients from the API with retry logic
   useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchPatients = async (retryCount = 0) => {
       try {
         setIsLoading(true);
         const response = await fetch('/api/patients');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch patients');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Server response error:', response.status, errorData);
+          throw new Error(`Failed to fetch patients: ${response.status} ${errorData.details || ''}`);
         }
         
         const data = await response.json();
@@ -62,6 +64,18 @@ const PatientList = () => {
         setError(null);
       } catch (err) {
         console.error('Error fetching patients:', err);
+        
+        // Implement retry logic (max 3 retries with exponential backoff)
+        if (retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms, 2000ms
+          console.log(`Retrying fetch in ${delay}ms (attempt ${retryCount + 1}/3)`);
+          
+          setTimeout(() => {
+            fetchPatients(retryCount + 1);
+          }, delay);
+          return;
+        }
+        
         setError('Failed to load patients. Please try again later.');
       } finally {
         setIsLoading(false);
