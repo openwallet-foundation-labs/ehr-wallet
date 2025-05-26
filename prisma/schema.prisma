@@ -16,6 +16,7 @@ model User {
   email          String    @unique
   password       String
   role           UserRole  @default(STAFF)
+  ethereumAddress String?   @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
@@ -24,6 +25,7 @@ enum UserRole {
   ADMIN
   DOCTOR
   STAFF
+  PATIENT
 }
 
 model Patient {

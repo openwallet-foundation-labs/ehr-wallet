@@ -3,6 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail } from '@/lib/db-utils';
 import { initDatabase } from '@/lib/db';
+import { ethers } from 'ethers';
+import { prisma } from '@/lib/prisma';
 
 // Extend the default session type to include our custom properties
 declare module 'next-auth' {
@@ -57,6 +59,60 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
+      id: 'ethereum',
+      name: 'Ethereum',
+      credentials: {
+        message: { label: "Message", type: "text" },
+        signature: { label: "Signature", type: "text" },
+        address: { label: "Ethereum Address", type: "text" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.message || !credentials?.signature || !credentials?.address) {
+          console.error('Missing Ethereum credentials');
+          return null;
+        }
+
+        try {
+          // Verify the signature matches the Ethereum address
+          const recoveredAddress = ethers.verifyMessage(credentials.message, credentials.signature);
+          
+          if (recoveredAddress.toLowerCase() !== credentials.address.toLowerCase()) {
+            console.error('Invalid signature');
+            return null;
+          }
+          
+          // Find or create a user with this Ethereum address
+          let user = await prisma.user.findUnique({
+            where: { ethereumAddress: credentials.address.toLowerCase() }
+          });
+          
+          if (!user) {
+            // Create a new user with the Ethereum address
+            user = await prisma.user.create({
+              data: {
+                email: `${credentials.address.toLowerCase()}@ethereum.user`,
+                name: `Wallet ${credentials.address.substring(0, 6)}`,
+                password: '', // No password for Ethereum users
+                role: 'PATIENT',
+                ethereumAddress: credentials.address.toLowerCase()
+              }
+            });
+          }
+          
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || null,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error('Ethereum auth error:', error);
+          return null;
+        }
+      },
+    }),
+    CredentialsProvider({
+      id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "email" },
