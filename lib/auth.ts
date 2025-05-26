@@ -14,12 +14,14 @@ declare module 'next-auth' {
       name?: string | null;
       email: string;
       role: string;
+      ethereumAddress?: string | null;
     };
   }
   
   interface User {
     id: string;
     role: string;
+    ethereumAddress?: string | null;
   }
 }
 
@@ -171,6 +173,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
+        token.ethereumAddress = user.ethereumAddress;
       }
       return token;
     },
@@ -180,6 +183,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string | null;
         session.user.role = token.role as string;
+        session.user.ethereumAddress = token.ethereumAddress as string | null;
       }
       return session;
     },
