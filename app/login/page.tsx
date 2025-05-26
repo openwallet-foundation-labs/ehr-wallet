@@ -26,8 +26,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
-import ConnectWalletButton from '@/components/web3/ConnectWalletButton';
-import MetaMaskProvider from '@/components/web3/MetaMaskProvider';
+import dynamic from 'next/dynamic';
+
+// Dynamically import components that use browser APIs
+const ConnectWalletButton = dynamic(
+  () => import('@/components/web3/ConnectWalletButton'),
+  { ssr: false }
+);
+
+const MetaMaskProvider = dynamic(
+  () => import('@/components/web3/MetaMaskProvider'),
+  { ssr: false }
+);
 
 // Define the form schema
 const formSchema = z.object({
@@ -208,9 +218,11 @@ export default function LoginPage() {
                 <p className="text-sm text-muted-foreground mb-6 text-center">
                   Connect your MetaMask wallet to sign in securely without a password
                 </p>
-                <MetaMaskProvider>
-                  <ConnectWalletButton />
-                </MetaMaskProvider>
+                {typeof window !== 'undefined' && (
+                  <MetaMaskProvider>
+                    <ConnectWalletButton />
+                  </MetaMaskProvider>
+                )}
               </div>
             </TabsContent>
           </Tabs>

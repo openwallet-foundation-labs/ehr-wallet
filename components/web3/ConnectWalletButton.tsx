@@ -31,7 +31,8 @@ const ConnectWalletButton = () => {
       const message = `Sign this message to authenticate with Radiant Flow Imaging Hub. Nonce: ${Date.now()}`;
       
       // Request signature
-      const signature = await window.ethereum.request({
+      const ethereum = (window as any).ethereum;
+      const signature = await ethereum.request({
         method: 'personal_sign',
         params: [message, address]
       });
@@ -58,6 +59,11 @@ const ConnectWalletButton = () => {
     }
   };
 
+  // Skip rendering during SSR
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   // Show install MetaMask message if not installed
   if (!isMetaMaskInstalled) {
     return (

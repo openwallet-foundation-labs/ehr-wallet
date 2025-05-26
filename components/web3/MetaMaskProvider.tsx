@@ -35,10 +35,13 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
 
-  // Check if MetaMask is installed
+  // Check if MetaMask is installed - only run on client side
   useEffect(() => {
+    // Skip during SSR
+    if (typeof window === 'undefined') return;
+    
     const checkMetaMaskInstalled = () => {
-      const { ethereum } = window;
+      const ethereum = (window as any).ethereum;
       if (ethereum && ethereum.isMetaMask) {
         setIsMetaMaskInstalled(true);
         
@@ -70,11 +73,12 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
     checkMetaMaskInstalled();
   }, []);
 
-  // Set up event listeners for MetaMask
+  // Set up event listeners for MetaMask - only run on client side
   useEffect(() => {
-    if (!isMetaMaskInstalled) return;
+    // Skip during SSR
+    if (typeof window === 'undefined' || !isMetaMaskInstalled) return;
 
-    const { ethereum } = window;
+    const ethereum = (window as any).ethereum;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
@@ -116,13 +120,19 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
   const connectWallet = async (): Promise<string | null> => {
     setError(null);
     
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      setError('Browser environment required');
+      return null;
+    }
+    
     if (!isMetaMaskInstalled) {
       setError('MetaMask is not installed. Please install MetaMask to continue.');
       return null;
     }
 
     try {
-      const { ethereum } = window;
+      const ethereum = (window as any).ethereum;
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
       
       if (accounts.length > 0) {
