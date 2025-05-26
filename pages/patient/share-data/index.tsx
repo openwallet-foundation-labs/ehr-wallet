@@ -1,37 +1,25 @@
-'use client';
-
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DataSharingForm from '@/components/web3/DataSharingForm';
-import ShareDisplay from '@/components/web3/ShareDisplay';
+import dynamic from 'next/dynamic';
+import PatientLayout from '@/components/layout/PatientLayout';
+
+// Dynamically import components that use browser APIs
+const DataSharingForm = dynamic(
+  () => import('@/components/web3/DataSharingForm'),
+  { ssr: false }
+);
+
+const ShareDisplay = dynamic(
+  () => import('@/components/web3/ShareDisplay'),
+  { ssr: false }
+);
 
 export default function ShareDataPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('form');
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const [accessId, setAccessId] = useState<string | null>(null);
-
-  // Check if user is authenticated and has the PATIENT role
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated' || !session) {
-    redirect('/login');
-    return null;
-  }
-
-  // Only patients can access this page
-  if (session.user.role !== 'PATIENT') {
-    redirect('/dashboard');
-    return null;
-  }
 
   const handleShareSuccess = (link: string, id: string) => {
     setShareableLink(link);
@@ -40,8 +28,9 @@ export default function ShareDataPage() {
   };
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Share Your Medical Data</h1>
+    <PatientLayout>
+      <div className="container max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-6">Share Your Medical Data</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -65,6 +54,7 @@ export default function ShareDataPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PatientLayout>
   );
 }

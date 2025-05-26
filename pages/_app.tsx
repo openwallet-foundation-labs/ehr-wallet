@@ -13,7 +13,15 @@ import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { UpdateNotification } from "@/components/pwa/UpdateNotification";
 import { usePWA } from "@/hooks/use-pwa";
 import { AppLayout } from "@/components/layout/AppLayout";
+import dynamic from "next/dynamic";
+import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
+
+// Dynamically import MetaMaskProvider to avoid SSR issues
+const MetaMaskProvider = dynamic(
+  () => import("@/components/web3/MetaMaskProvider"),
+  { ssr: false }
+);
 
 // Create a client
 const queryClient = new QueryClient();
@@ -42,34 +50,38 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </Head>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
-          <AuthWrapper publicPaths={["/login"]}>
-            <TooltipProvider>
-            {/* Show splash screen only on initial load when in standalone mode */}
-            {showSplash && isStandalone && <SplashScreen />}
-            
-            {/* Show offline indicator when needed */}
-            <OfflineIndicator />
-            
-            {/* Show update notification when available */}
-            <UpdateNotification />
-            
-            {/* Main content with AppLayout */}
-            <AppLayout>
-              <Component {...pageProps} />
-            </AppLayout>
-            
-            {/* Show install prompt when appropriate */}
-            <InstallPrompt />
-            
-            {/* UI components */}
-            <Toaster />
-            <Sonner />
-            </TooltipProvider>
-          </AuthWrapper>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <SessionProvider session={pageProps.session}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
+            <AuthWrapper publicPaths={["/login"]}>
+              <TooltipProvider>
+              {/* Show splash screen only on initial load when in standalone mode */}
+              {showSplash && isStandalone && <SplashScreen />}
+              
+              {/* Show offline indicator when needed */}
+              <OfflineIndicator />
+              
+              {/* Show update notification when available */}
+              <UpdateNotification />
+              
+              {/* Main content with AppLayout and MetaMaskProvider */}
+              <AppLayout>
+                <MetaMaskProvider>
+                  <Component {...pageProps} />
+                </MetaMaskProvider>
+              </AppLayout>
+              
+              {/* Show install prompt when appropriate */}
+              <InstallPrompt />
+              
+              {/* UI components */}
+              <Toaster />
+              <Sonner />
+              </TooltipProvider>
+            </AuthWrapper>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SessionProvider>
     </>
   );
 }

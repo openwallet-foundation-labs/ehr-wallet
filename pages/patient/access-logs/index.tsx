@@ -1,14 +1,18 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Clock, ExternalLink, ShieldAlert, Eye } from 'lucide-react';
-import { useMetaMask } from '@/components/web3/MetaMaskProvider';
+import dynamic from 'next/dynamic';
+import PatientLayout from '@/components/layout/PatientLayout';
+
+// Dynamically import components that use browser APIs
+const MetaMaskProvider = dynamic(
+  () => import('@/components/web3/MetaMaskProvider'),
+  { ssr: false }
+);
 
 // Mock data - in a real implementation, this would come from blockchain events
 const mockAccessLogs = [
@@ -31,31 +35,18 @@ const mockAccessLogs = [
 ];
 
 export default function AccessLogsPage() {
-  const { data: session, status } = useSession();
-  const { isMetaMaskInstalled } = useMetaMask();
+  const { data: session } = useSession();
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
 
-  // Check if user is authenticated and has the PATIENT role
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated' || !session) {
-    redirect('/login');
-    return null;
-  }
-
-  // Only patients can access this page
-  if (session.user.role !== 'PATIENT') {
-    redirect('/dashboard');
-    return null;
-  }
+  // Check if MetaMask is installed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMetaMaskInstalled(Boolean(window.ethereum?.isMetaMask));
+    }
+  }, []);
 
   // Load access logs
   useEffect(() => {
@@ -114,11 +105,12 @@ export default function AccessLogsPage() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-2">Access Logs</h1>
-      <p className="text-muted-foreground mb-8">
-        Track who has accessed your shared medical data
-      </p>
+    <PatientLayout>
+      <div className="container max-w-7xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-2">Access Logs</h1>
+        <p className="text-muted-foreground mb-8">
+          Track who has accessed your shared medical data
+        </p>
       
       <Card className="w-full">
         <CardHeader>
@@ -207,6 +199,9 @@ export default function AccessLogsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PatientLayout>
   );
 }
+
+// TypeScript declaration for window.ethereum is now in Web3Handler.tsx

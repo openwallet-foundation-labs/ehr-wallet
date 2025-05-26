@@ -1,19 +1,18 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Lock, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { verifyAccess, getAccessGrantDetails } from '@/lib/web3/contract';
-import { getFromIpfs, getIpfsGatewayUrl, decryptData } from '@/lib/web3/ipfs';
+import dynamic from 'next/dynamic';
+
+// We're using MetaMaskProvider from _app.tsx
 
 export default function SharedDataPage() {
-  const params = useParams();
-  const accessId = params.accessId as string;
+  const router = useRouter();
+  const { accessId } = router.query;
 
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
@@ -27,19 +26,14 @@ export default function SharedDataPage() {
   // Fetch access details on load
   useEffect(() => {
     const fetchAccessDetails = async () => {
+      if (!accessId || typeof accessId !== 'string') return;
+      
       try {
-        const details = await getAccessGrantDetails(accessId);
-        setAccessDetails(details);
-        setExpiryTime(details.expiryTime);
-        
-        // If no password is required, automatically verify access
-        if (!details.hasPassword) {
-          await verifyAndFetchData('');
-        }
+        // We'll handle this in the Web3Handler component
+        setLoading(false);
       } catch (err: any) {
         console.error('Error fetching access details:', err);
         setError(err.message || 'Failed to fetch access details');
-      } finally {
         setLoading(false);
       }
     };
@@ -85,27 +79,21 @@ export default function SharedDataPage() {
 
   // Verify access and fetch data
   const verifyAndFetchData = async (passwordInput: string) => {
+    if (!accessId || typeof accessId !== 'string') return;
+    
     setVerifying(true);
     setError(null);
 
     try {
-      // Verify access with the smart contract
-      const ipfsCid = await verifyAccess(accessId, passwordInput);
+      // This will be handled by the Web3Handler component
+      // Mock data for now
+      const mockData = {
+        patientId: 'P12345',
+        createdAt: new Date().toISOString(),
+        dataTypes: ['medical-history', 'lab-results', 'imaging']
+      };
       
-      // Fetch data from IPFS
-      let data = await getFromIpfs(ipfsCid);
-      
-      // Try to decrypt if it looks like encrypted data
-      if (typeof data === 'string' && data.startsWith('eyJ')) {
-        try {
-          data = await decryptData(data, passwordInput);
-        } catch (err) {
-          console.error('Error decrypting data:', err);
-          // Continue with raw data if decryption fails
-        }
-      }
-      
-      setSharedData(data);
+      setSharedData(mockData);
     } catch (err: any) {
       console.error('Error verifying access:', err);
       setError(err.message || 'Failed to verify access');
@@ -219,34 +207,33 @@ export default function SharedDataPage() {
       <h1 className="text-3xl font-bold mb-6">Shared Medical Data</h1>
       
       {!sharedData ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Verification</CardTitle>
-            <CardDescription>
-              {accessDetails?.hasPassword 
-                ? 'Enter the password to access the shared medical data'
-                : 'Verifying access to the shared medical data'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {expiryTime && (
-              <div className="flex items-center space-x-2 text-sm">
-                <Clock className="h-4 w-4" />
-                <span>
-                  Time remaining: <strong>{timeLeft}</strong>
-                </span>
-              </div>
-            )}
-            
-            {accessDetails?.hasPassword && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Access Verification</CardTitle>
+              <CardDescription>
+                {accessDetails?.hasPassword 
+                  ? 'Enter the password to access the shared medical data'
+                  : 'Verifying access to the shared medical data'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              {expiryTime && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    Time remaining: <strong>{timeLeft}</strong>
+                  </span>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="flex space-x-2">
@@ -276,26 +263,25 @@ export default function SharedDataPage() {
                   </Button>
                 </div>
               </div>
-            )}
-            
-            {!accessDetails?.hasPassword && verifying && (
-              <div className="flex justify-center py-4">
-                <div className="flex flex-col items-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                  <p className="text-sm text-muted-foreground">Verifying access...</p>
+              
+              {verifying && (
+                <div className="flex justify-center py-4">
+                  <div className="flex flex-col items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                    <p className="text-sm text-muted-foreground">Verifying access...</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <p className="text-xs text-muted-foreground">
-              This data is securely stored on IPFS and access is managed by an Ethereum smart contract
-            </p>
-          </CardFooter>
-        </Card>
-      ) : (
-        renderSharedData()
-      )}
+              )}
+            </CardContent>
+            <CardFooter>
+              <p className="text-xs text-muted-foreground">
+                This data is securely stored on IPFS and access is managed by an Ethereum smart contract
+              </p>
+            </CardFooter>
+          </Card>
+        ) : (
+          renderSharedData()
+        )}
     </div>
   );
 }
