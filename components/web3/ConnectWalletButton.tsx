@@ -3,27 +3,29 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { signIn } from 'next-auth/react';
-import { Wallet } from 'lucide-react';
+import { Wallet, AlertCircle, Loader2 } from 'lucide-react';
+import { useMetaMask } from './MetaMaskProvider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ConnectWalletButton = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { isMetaMaskInstalled, isConnected, currentAccount, connectWallet, error: metaMaskError } = useMetaMask();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [address, setAddress] = useState<string | null>(null);
 
-  const connectWallet = async () => {
-    setIsConnecting(true);
+  const handleConnect = async () => {
+    setIsAuthenticating(true);
     setError(null);
 
     try {
-      // Check if MetaMask is installed
-      if (!window.ethereum) {
-        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+      // First connect the wallet if not already connected
+      let address = currentAccount;
+      if (!isConnected) {
+        address = await connectWallet();
       }
 
-      // Request account access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const address = accounts[0];
-      setAddress(address);
+      if (!address) {
+        throw new Error('Failed to connect wallet');
+      }
 
       // Create a message to sign
       const message = `Sign this message to authenticate with Radiant Flow Imaging Hub. Nonce: ${Date.now()}`;
@@ -47,35 +49,65 @@ const ConnectWalletButton = () => {
       }
 
       // Redirect or update UI as needed
-      window.location.href = '/dashboard';
+      window.location.href = '/patient/dashboard';
     } catch (err: any) {
-      console.error('Wallet connection error:', err);
-      setError(err.message || 'Failed to connect wallet');
-      setAddress(null);
+      console.error('Wallet authentication error:', err);
+      setError(err.message || 'Failed to authenticate with wallet');
     } finally {
-      setIsConnecting(false);
+      setIsAuthenticating(false);
     }
   };
+
+  // Show install MetaMask message if not installed
+  if (!isMetaMaskInstalled) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            MetaMask is not installed. Please install MetaMask to continue.
+          </AlertDescription>
+        </Alert>
+        <Button 
+          onClick={() => window.open('https://metamask.io/download/', '_blank')}
+          variant="outline"
+          className="mt-2"
+        >
+          Install MetaMask
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-2">
       <Button 
-        onClick={connectWallet} 
-        disabled={isConnecting}
+        onClick={handleConnect} 
+        disabled={isAuthenticating}
         className="flex items-center gap-2"
+        variant={isConnected ? "outline" : "default"}
       >
-        <Wallet className="h-4 w-4" />
-        {address ? 'Connected' : isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        {isAuthenticating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Authenticating...
+          </>
+        ) : (
+          <>
+            <Wallet className="h-4 w-4" />
+            {isConnected ? 'Sign In with MetaMask' : 'Connect Wallet'}
+          </>
+        )}
       </Button>
       
-      {address && (
-        <p className="text-sm text-muted-foreground">
-          {`${address.substring(0, 6)}...${address.substring(address.length - 4)}`}
+      {isConnected && currentAccount && (
+        <p className="text-xs text-muted-foreground">
+          Connected: {`${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`}
         </p>
       )}
       
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
+      {(error || metaMaskError) && (
+        <p className="text-xs text-destructive mt-1">{error || metaMaskError}</p>
       )}
     </div>
   );
