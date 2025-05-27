@@ -463,7 +463,7 @@ const Scheduling = () => {
   return (
     <>
       <Head>
-        <title>Scheduling - RadGlobal RIS</title>
+        <title>Scheduling - GlobalRad</title>
         <meta name="description" content="View and manage all scheduled appointments" />
       </Head>
       <MainLayout>

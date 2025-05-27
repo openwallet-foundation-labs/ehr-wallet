@@ -19,11 +19,11 @@ export function SplashScreen() {
       <div className="w-24 h-24 mb-4">
         <img 
           src="/icons/icon-512x512.png" 
-          alt="RadGlobal RIS Logo" 
+          alt="GlobalRad Logo" 
           className="w-full h-full"
         />
       </div>
-      <h1 className="text-2xl font-bold text-primary mb-2">RadGlobal RIS</h1>
+      <h1 className="text-2xl font-bold text-primary mb-2">GlobalRad</h1>
       <p className="text-gray-500 dark:text-gray-400">Imaging Hub</p>
       <div className="mt-8 w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div className="h-full bg-primary animate-pulse"></div>

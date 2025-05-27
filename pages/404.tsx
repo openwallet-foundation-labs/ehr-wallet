@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <>
       <Head>
-        <title>Page Not Found - RadGlobal RIS</title>
+        <title>Page Not Found - GlobalRad</title>
         <meta name="description" content="The page you are looking for does not exist" />
       </Head>
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">

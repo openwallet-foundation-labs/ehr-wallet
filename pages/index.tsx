@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>RadGlobal RIS - Imaging Hub</title>
+        <title>GlobalRad - Imaging Hub</title>
         <meta name="description" content="Modern radiology information system for patient management and PACS integration" />
       </Head>
       <Dashboard />

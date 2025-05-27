@@ -52,7 +52,7 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 z-50 flex items-center justify-between">
       <div className="flex-1">
-        <h3 className="font-medium">Install RadGlobal RIS</h3>
+        <h3 className="font-medium">Install GlobalRad</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">Add to home screen for offline access</p>
       </div>
       <div className="flex items-center gap-2">

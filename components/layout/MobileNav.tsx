@@ -30,7 +30,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
         <SheetContent side="left" className="w-[240px] sm:w-[300px]">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between py-2">
-              <div className="font-bold text-lg">RadGlobal RIS</div>
+              <div className="font-bold text-lg">GlobalRad</div>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
@@ -61,7 +61,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
             </nav>
             <div className="border-t py-4 mt-auto">
               <div className="text-xs text-muted-foreground">
-                <p>RadGlobal RIS v0.1.0</p>
+                <p>GlobalRad v0.1.0</p>
                 <p className="mt-1">© 2025 RadGlobal</p>
               </div>
             </div>

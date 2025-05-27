@@ -1,7 +1,7 @@
 
 {
-  "name": "RadGlobal RIS - Imaging Hub",
-  "short_name": "RadGlobal RIS",
+  "name": "GlobalRad - Imaging Hub",
+  "short_name": "GlobalRad",
   "description": "Modern radiology information system for patient management and PACS integration",
   "start_url": "/",
   "display": "standalone",

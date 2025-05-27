@@ -166,7 +166,7 @@ export default function EditPatient() {
   return (
     <>
       <Head>
-        <title>Edit Patient - RadGlobal RIS</title>
+        <title>Edit Patient - GlobalRad</title>
         <meta name="description" content="Edit patient information" />
       </Head>
       

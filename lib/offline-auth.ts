@@ -55,24 +55,56 @@ export async function authenticateOffline(email: string, password: string): Prom
   }
 }
 
-// Function to get the current user from local storage
+// Function to get the current user from local storage or MetaMask session
 export function getCurrentUser(): Omit<UserType, 'password'> | null {
   if (typeof window === 'undefined') return null;
   
+  // First check for regular user in localStorage
   const userStr = localStorage.getItem('currentUser');
-  if (!userStr) return null;
-  
-  try {
-    return JSON.parse(userStr);
-  } catch {
-    return null;
+  if (userStr) {
+    try {
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error('Error parsing currentUser:', error);
+    }
   }
+  
+  // If no regular user, check for MetaMask patient session
+  const patientSessionStr = localStorage.getItem('patientSession');
+  if (patientSessionStr) {
+    try {
+      const patientSession = JSON.parse(patientSessionStr);
+      if (patientSession?.user) {
+        // Convert the MetaMask patient session to a user object
+        return {
+          id: `eth-${patientSession.user.ethereumAddress}`,
+          email: null,
+          name: patientSession.user.name || 'Patient',
+          role: 'PATIENT',
+          ethereumAddress: patientSession.user.ethereumAddress,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing patientSession:', error);
+    }
+  }
+  
+  // No user found
+  return null;
 }
 
 // Function to log out the current user
 export function logoutUser(): void {
   if (typeof window === 'undefined') return;
+  
+  // Remove regular user authentication
   localStorage.removeItem('currentUser');
+  
+  // Also remove MetaMask-related session data
+  localStorage.removeItem('patientWalletAddress');
+  localStorage.removeItem('patientSession');
 }
 
 // Function to check if user is authenticated
@@ -81,7 +113,8 @@ export function isAuthenticated(): boolean {
 }
 
 // Function to check if user has a specific role
-export function hasRole(role: 'ADMIN' | 'DOCTOR' | 'STAFF'): boolean {
+export function hasRole(role: 'ADMIN' | 'DOCTOR' | 'STAFF' | 'PATIENT'): boolean {
   const user = getCurrentUser();
-  return user !== null && user.role === role;
+  if (!user) return false;
+  return user.role === role;
 }

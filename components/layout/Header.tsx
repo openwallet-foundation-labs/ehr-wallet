@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Search, Menu, X } from "lucide-react";
 import { UserAccountNav } from "@/components/UserAccountNav";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSession } from "next-auth/react";
+import { useMetaMask } from "@/components/web3/MetaMaskProvider";
 
 export const Header = ({ 
   toggleSidebar,
@@ -24,6 +26,32 @@ export const Header = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
+  const { data: session } = useSession();
+  const { isConnected, currentAccount } = useMetaMask();
+  const [patientSession, setPatientSession] = useState<any>(null);
+  const [isPatient, setIsPatient] = useState(false);
+  
+  // Check for MetaMask-based patient session in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPatientSession = localStorage.getItem('patientSession');
+      if (storedPatientSession) {
+        try {
+          const parsedSession = JSON.parse(storedPatientSession);
+          setPatientSession(parsedSession);
+        } catch (error) {
+          console.error('Error parsing patient session:', error);
+        }
+      }
+    }
+  }, []);
+  
+  // Determine if the user is a patient (either via next-auth or MetaMask)
+  useEffect(() => {
+    const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
+    const isMetaMaskPatient = isConnected && currentAccount && patientSession?.user?.role === 'patient';
+    setIsPatient(isNextAuthPatient || isMetaMaskPatient);
+  }, [session, isConnected, currentAccount, patientSession]);
   
   return (
     <header className="sticky top-0 z-30 bg-background border-b border-border flex items-center justify-between p-4 h-16">
@@ -44,7 +72,7 @@ export const Header = ({
               )}
               <span className="sr-only">Toggle menu</span>
             </Button>
-            <div className="text-xl font-semibold text-primary">RadGlobal RIS</div>
+            <div className="text-xl font-semibold text-primary">GlobalRad</div>
           </>
         ) : (
           <>
@@ -52,12 +80,12 @@ export const Header = ({
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle sidebar</span>
             </Button>
-            <div className="text-xl font-semibold text-primary">RadGlobal RIS</div>
+            <div className="text-xl font-semibold text-primary">GlobalRad</div>
           </>
         )}
       </div>
       
-      {!isMobile && (
+      {!isMobile && !isPatient && (
         <div className="flex-1 max-w-md mx-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -75,7 +103,7 @@ export const Header = ({
       )}
       
       <div className="flex items-center gap-2">
-        {isMobile && (
+        {isMobile && !isPatient && (
           <Button variant="ghost" size="icon" className="relative" aria-label="Search">
             <Search className="h-5 w-5" />
           </Button>

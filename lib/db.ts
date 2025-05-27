@@ -4,9 +4,10 @@ import Dexie from 'dexie';
 export interface UserType {
   id: string;
   name?: string | null;
-  email: string;
+  email: string | null;
   password?: string; // Stored hashed
-  role: 'ADMIN' | 'DOCTOR' | 'STAFF';
+  role: 'ADMIN' | 'DOCTOR' | 'STAFF' | 'PATIENT';
+  ethereumAddress?: string; // For Web3 authentication
   createdAt?: Date;
   updatedAt?: Date;
 }

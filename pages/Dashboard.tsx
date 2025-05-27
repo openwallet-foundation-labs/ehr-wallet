@@ -15,7 +15,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back to RadGlobal RIS</p>
+          <p className="text-muted-foreground">Welcome back to GlobalRad</p>
         </div>
         
         <div className="flex flex-wrap gap-2">

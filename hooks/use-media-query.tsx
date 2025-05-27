@@ -14,11 +14,19 @@ export function useMediaQuery({
   query, 
   defaultValue = false 
 }: MediaQueryOptions): boolean {
+  // Always initialize with defaultValue for SSR consistency
   const [matches, setMatches] = useState<boolean>(defaultValue);
+  // Track if we're on the client side
+  const [isClient, setIsClient] = useState<boolean>(false);
+
+  // Set isClient to true once the component is mounted
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    // Only run on client side
-    if (typeof window === "undefined") return;
+    // Skip effect on server side
+    if (!isClient) return;
 
     // Create media query list
     const mediaQueryList = window.matchMedia(query);
@@ -48,39 +56,10 @@ export function useMediaQuery({
         mediaQueryList.removeListener(listener);
       }
     };
-  }, [query]);
+  }, [query, isClient]);
 
   return matches;
 }
 
-// Predefined media query hooks for common breakpoints
-export function useIsMobile() {
-  return useMediaQuery({ query: "(max-width: 767px)" });
-}
-
-export function useIsTablet() {
-  return useMediaQuery({ query: "(min-width: 768px) and (max-width: 1023px)" });
-}
-
-export function useIsDesktop() {
-  return useMediaQuery({ query: "(min-width: 1024px)" });
-}
-
-export function useIsLargeDesktop() {
-  return useMediaQuery({ query: "(min-width: 1280px)" });
-}
-
-export function useIsPortrait() {
-  return useMediaQuery({ query: "(orientation: portrait)" });
-}
-
-export function useIsLandscape() {
-  return useMediaQuery({ query: "(orientation: landscape)" });
-}
-
-export function useIsTouchDevice() {
-  return useMediaQuery({ 
-    query: "(hover: none) and (pointer: coarse)",
-    defaultValue: false
-  });
-}
+// Note: Predefined media query hooks have been moved to their own files
+// to avoid duplicate hook definitions

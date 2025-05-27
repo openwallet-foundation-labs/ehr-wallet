@@ -1,8 +1,8 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { useMetaMask } from '@/components/web3/MetaMaskProvider';
+import { MainLayout } from '@/components/layout/MainLayout';
 
 interface PatientLayoutProps {
   children: ReactNode;
@@ -39,45 +39,20 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
     );
   }
 
-  // Check if authenticated via next-auth
-  const isNextAuthPatient = session?.user?.role === 'PATIENT';
+  // Check if authenticated via next-auth (case insensitive check for 'patient' role)
+  const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
   
   // Check if authenticated via MetaMask
   const isMetaMaskPatient = isConnected && currentAccount && patientSession?.user?.role === 'patient';
   
   // If not authenticated at all, redirect to login
   if (!isNextAuthPatient && !isMetaMaskPatient) {
+    console.log('Not authenticated, redirecting to login');
     router.push('/login');
     return null;
   }
   
-  // If authenticated via next-auth but not as a patient, redirect to dashboard
-  if (session && !isNextAuthPatient) {
-    router.push('/dashboard');
-    return null;
-  }
-
-  // State for sidebar open/close on mobile
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <main className="flex-1 bg-background">
-        <div className="p-4 md:hidden">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-md bg-primary/10 hover:bg-primary/20"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
-              <line x1="4" x2="20" y1="12" y2="12"/>
-              <line x1="4" x2="20" y1="6" y2="6"/>
-              <line x1="4" x2="20" y1="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        {children}
-      </main>
-    </div>
-  );
+  // Simply use the MainLayout component which already handles responsive design
+  // and has the sidebar with role-based navigation
+  return <MainLayout>{children}</MainLayout>;
 }

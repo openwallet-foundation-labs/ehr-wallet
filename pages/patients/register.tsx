@@ -6,8 +6,8 @@ export default function RegisterPage() {
   return (
     <>
       <Head>
-        <title>Register Patient - RadGlobal RIS</title>
-        <meta name="description" content="Register new patients in the RadGlobal RIS system" />
+        <title>Register Patient - GlobalRad</title>
+        <meta name="description" content="Register new patients in the GlobalRad system" />
       </Head>
       <PatientRegister />
     </>

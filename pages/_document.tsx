@@ -8,7 +8,7 @@ export default function Document() {
         <meta name="description" content="Modern radiology information system for patient management and PACS integration" />
         <meta name="author" content="Lovable" />
 
-        <meta property="og:title" content="RadGlobal RIS - Imaging Hub" />
+        <meta property="og:title" content="GlobalRad - Imaging Hub" />
         <meta property="og:description" content="Modern radiology information system for patient management and PACS integration" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />

@@ -87,7 +87,7 @@ export default function Schedule() {
   return (
     <>
       <Head>
-        <title>Schedule | RadGlobal RIS</title>
+        <title>Schedule | GlobalRad</title>
       </Head>
       <MainLayout>
         <div className="flex flex-col space-y-6">

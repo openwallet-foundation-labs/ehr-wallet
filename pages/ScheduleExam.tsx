@@ -819,7 +819,7 @@ const ScheduleExam = () => {
   return (
     <>
       <Head>
-        <title>Schedule Exam - RadGlobal RIS</title>
+        <title>Schedule Exam - GlobalRad</title>
         <meta name="description" content="Schedule a new imaging exam for a patient" />
       </Head>
       <ScheduleExamContent />

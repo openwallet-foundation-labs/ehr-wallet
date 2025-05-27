@@ -1,8 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSession } from "next-auth/react";
+import { useMetaMask } from "@/components/web3/MetaMaskProvider";
 import { 
   Calendar,
   User,
@@ -12,7 +14,10 @@ import {
   Info,
   FileSearch,
   FileCheck,
-  Folder
+  Folder,
+  Share,
+  ClipboardList,
+  Wallet
 } from "lucide-react";
 // Utility function to conditionally join classNames
 const cn = (...inputs: any[]) => {
@@ -40,18 +45,61 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const router = useRouter();
   // Use the proper hook for mobile detection
   const isMobile = useIsMobile();
+  // Get user session to determine role
+  const { data: session } = useSession();
+  const { isConnected, currentAccount } = useMetaMask();
+  const [patientSession, setPatientSession] = useState<any>(null);
+  const [isPatient, setIsPatient] = useState(false);
   
-  const links = [
-    { name: "Dashboard", path: "/", icon: <Database className="w-5 h-5" /> },
-    { name: "Patient Registration", path: "/patients/register", icon: <User className="w-5 h-5" /> },
-    { name: "Patient List", path: "/patients", icon: <Users className="w-5 h-5" /> },
-    { name: "Scheduling", path: "/scheduling", icon: <Calendar className="w-5 h-5" /> }
+  // Check for MetaMask-based patient session in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPatientSession = localStorage.getItem('patientSession');
+      if (storedPatientSession) {
+        try {
+          const parsedSession = JSON.parse(storedPatientSession);
+          setPatientSession(parsedSession);
+        } catch (error) {
+          console.error('Error parsing patient session:', error);
+        }
+      }
+    }
+  }, []);
+  
+  // Determine if the user is a patient (either via next-auth or MetaMask)
+  useEffect(() => {
+    const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
+    const isMetaMaskPatient = isConnected && currentAccount && patientSession?.user?.role === 'patient';
+    setIsPatient(isNextAuthPatient || isMetaMaskPatient);
+  }, [session, isConnected, currentAccount, patientSession]);
+  
+  // Use the determined role
+  const userRole = isPatient ? "PATIENT" : (session?.user?.role || "");
+  
+  // Admin/Staff links - only shown to non-patient users
+  const adminLinks = [
+    { name: "Dashboard", path: "/", icon: <Database className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
+    { name: "Patient Registration", path: "/patients/register", icon: <User className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
+    { name: "Patient List", path: "/patients", icon: <Users className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
+    { name: "Scheduling", path: "/scheduling", icon: <Calendar className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] }
   ];
   
-  const adminLinks = [
-    { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5" /> },
+  // Patient links - only shown to patients
+  const patientLinks = [
+    { name: "Dashboard", path: "/patient/dashboard", icon: <Database className="w-5 h-5" />, roles: ["PATIENT"] },
+    { name: "Share Data", path: "/patient/share-data", icon: <Share className="w-5 h-5" />, roles: ["PATIENT"] },
+    { name: "Access Logs", path: "/patient/access-logs", icon: <ClipboardList className="w-5 h-5" />, roles: ["PATIENT"] },
+    { name: "Connect Wallet", path: "/patient/wallet", icon: <Wallet className="w-5 h-5" />, roles: ["PATIENT"] }
+  ];
+  
+  // Settings links - shown to all users but with different paths
+  const settingsLinks = [
+    { name: "Settings", path: userRole === "PATIENT" ? "/patient/settings" : "/settings", icon: <Settings className="w-5 h-5" /> },
     { name: "Help & Support", path: "/support", icon: <Info className="w-5 h-5" /> }
   ];
+  
+  // Filter links based on user role
+  const links = isPatient ? patientLinks : adminLinks;
   
   // Mobile overlay that closes when clicked outside
   if (isMobile) {
@@ -71,9 +119,16 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         >
           <div className="p-4 border-b border-border">
             <div className="flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-primary">RadGlobal RIS</h1>
+              <h1 className="text-xl font-semibold text-primary">
+                {userRole === "PATIENT" ? "Patient Portal" : "GlobalRad"}
+              </h1>
               {/* Close button removed to avoid duplicate X icons */}
             </div>
+            {session?.user?.name && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {session.user.name}
+              </p>
+            )}
           </div>
           
           <nav className="p-2">
@@ -99,10 +154,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             
             <div className="mt-8 pt-4 border-t border-border">
               <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Administration
+                Settings
               </div>
               <div className="space-y-1">
-                {adminLinks.map((link) => {
+                {settingsLinks.map((link) => {
                   const isActive = router.pathname === link.path;
                   return (
                     <Link
@@ -160,11 +215,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="mt-8 pt-4 border-t border-border">
           {isOpen && (
             <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Administration
+              Settings
             </div>
           )}
           <div className="space-y-1">
-            {adminLinks.map((link) => {
+            {settingsLinks.map((link) => {
               const isActive = router.pathname === link.path;
               return (
                 <Link
