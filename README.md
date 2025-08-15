@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+
 # EHR Wallet
 
 [![CI Status](https://github.com/sbhavani/health-wallet/actions/workflows/ci.yml/badge.svg)](https://github.com/sbhavani/health-wallet/actions/workflows/ci.yml) [![Smart Contract Tests](https://github.com/sbhavani/health-wallet/actions/workflows/smart-contract.yml/badge.svg)](https://github.com/sbhavani/health-wallet/actions/workflows/smart-contract.yml) [![Dependency Review](https://github.com/sbhavani/health-wallet/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/sbhavani/health-wallet/actions/workflows/dependency-review.yml)
@@ -104,3 +106,7 @@ This project is maintained by:
 
 - [@sbhavani](https://github.com/sbhavani)
 - [@rstellar](https://github.com/rstellar)
+
+## Documentation License
+
+This documentation is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
