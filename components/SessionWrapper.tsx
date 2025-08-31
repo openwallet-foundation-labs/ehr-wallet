@@ -24,7 +24,8 @@ export const SessionWrapper: FC<SessionWrapperProps> = ({ children }) => {
     '/register',
     '/forgot-password',
     '/reset-password',
-    '/verify-email'
+    '/verify-email',
+    '/patient/share-data'
   ];
   
   // Check if the current path is a public path

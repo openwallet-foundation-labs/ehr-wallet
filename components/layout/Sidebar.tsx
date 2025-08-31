@@ -66,12 +66,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     }
   }, []);
   
-  // Determine if the user is a patient (either via next-auth or MetaMask)
+  // Determine if the user is a patient (either via next-auth, MetaMask, or current route)
   useEffect(() => {
     const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
     const isMetaMaskPatient = isConnected && currentAccount && patientSession?.user?.role === 'patient';
-    setIsPatient(isNextAuthPatient || isMetaMaskPatient);
-  }, [session, isConnected, currentAccount, patientSession]);
+    const isOnPatientRoute = router.pathname.startsWith('/patient/');
+    setIsPatient(isNextAuthPatient || isMetaMaskPatient || isOnPatientRoute);
+  }, [session, isConnected, currentAccount, patientSession, router.pathname]);
   
   // Use the determined role
   const userRole = isPatient ? "PATIENT" : (session?.user?.role || "");

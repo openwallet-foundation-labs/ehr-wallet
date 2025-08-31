@@ -40,15 +40,53 @@ export default function ShareDataPage() {
     };
   }, [redirectTimer]);
 
-  // Check if session is loaded and user exists
-  if (!session || !session.user) {
+  // Allow anonymous access to share-data page
+  const isAnonymousAccess = !session || !session.user;
+  
+  if (isAnonymousAccess) {
     return (
       <PatientLayout>
         <div className="container max-w-4xl mx-auto py-8 px-4">
           <h1 className="text-3xl font-bold mb-6">Share Your Medical Data</h1>
-          <div className="p-4 border rounded-md bg-yellow-50 text-yellow-800">
-            Please sign in to access data sharing features.
+          <div className="p-4 border rounded-md bg-blue-50 text-blue-800 mb-6">
+            You are accessing the data sharing feature without authentication. You can still share medical data anonymously.
           </div>
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="form">Select Data</TabsTrigger>
+              <TabsTrigger value="share" disabled={!shareableLink}>Share Link</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="form" className="mt-0">
+              <DataSharingForm 
+                patientId={"anonymous"} 
+                onSuccess={handleShareSuccess} 
+              />
+            </TabsContent>
+            
+            <TabsContent value="share" className="mt-0">
+              {shareableLink && accessId && (
+                <>
+                  <ShareDisplay 
+                    shareableLink={shareableLink} 
+                    accessId={accessId} 
+                  />
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Your data has been shared successfully. You can bookmark this page or copy the link above.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab('form')}
+                    >
+                      Share More Data
+                    </Button>
+                  </div>
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </PatientLayout>
     );

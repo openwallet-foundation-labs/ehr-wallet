@@ -192,14 +192,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     return (
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-48" />
-            {onClose && (
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <Skeleton className="h-6 w-48" />
         </CardHeader>
         <CardContent className="space-y-6">
           {[...Array(6)].map((_, i) => (
@@ -239,17 +232,10 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Appointment Details
-          </CardTitle>
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
+          Appointment Details
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Status and Type */}
