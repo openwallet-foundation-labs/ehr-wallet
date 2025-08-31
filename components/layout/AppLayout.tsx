@@ -11,7 +11,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   
   // Pages that should use the MainLayout
   const pagesWithLayout = [
-    "/",
     "/Dashboard",
     "/PatientList",
     "/PatientRegister",
@@ -21,6 +20,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     "/patients",
     "/analytics"
     // Add other pages that should use the MainLayout
+    // Note: "/" (home page) is excluded because it uses PatientLayout which already includes MainLayout
   ];
   
   // Check if current path should use MainLayout
