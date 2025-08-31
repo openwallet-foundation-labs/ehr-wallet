@@ -13,44 +13,16 @@ export function AuthWrapper({ children, publicPaths = ['/login'] }: AuthWrapperP
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Wait until session status is determined
-    if (status === 'loading') return;
+    // Authentication disabled for development - allow all access
+    console.log('AuthWrapper: Authentication checks disabled for development');
+    console.log('Current path:', router.pathname);
+    console.log('Session:', session);
+    console.log('Status:', status);
     
-    const isPublicPath = publicPaths.includes(router.pathname);
-    
-    if (!session && !isPublicPath) {
-      // Not authenticated and trying to access protected route
-      console.log('Not authenticated, redirecting to login');
-      router.push(`/login?callbackUrl=${encodeURIComponent(router.asPath)}`);
-      return;
-    } else if (session && isPublicPath) {
-      // Authenticated but trying to access login page
-      console.log('Already authenticated, redirecting to dashboard');
-      router.push('/');
-      return;
-    } else if (session?.user.role === 'PATIENT' && router.pathname === '/') {
-      // If user is a patient and trying to access root path
-      // Redirect to patient dashboard
-      console.log('Patient user accessing root path, redirecting to patient dashboard');
-      router.push('/patient/dashboard');
-      return;
-    }
-    
-    // Set loading to false once routing decision is made
+    // Set loading to false immediately
     setIsLoading(false);
   }, [router, session, status, publicPaths]);
   
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-2">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
+  // Skip loading state and render children immediately
   return <>{children}</>;
 }

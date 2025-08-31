@@ -6,12 +6,10 @@ import dynamic from 'next/dynamic';
 import PatientLayout from '@/components/layout/PatientLayout';
 import { useMetaMask } from '@/components/web3/MetaMaskProvider';
 import AppleHealthConnect from '@/components/health/AppleHealthConnect';
+import AppointmentsDashboard from '@/components/appointments/AppointmentsDashboard';
 
-// Dynamically import components that use browser APIs
-const SharedDataDashboard = dynamic(
-  () => import('@/components/web3/SharedDataDashboard'),
-  { ssr: false }
-);
+// Temporarily use regular import to debug dynamic import issue
+import SharedDataDashboard from '@/components/web3/SharedDataDashboard';
 
 export default function PatientDashboardPage() {
   const { data: session } = useSession();
@@ -47,7 +45,7 @@ export default function PatientDashboardPage() {
   // Handle URL query parameters for tab selection and refresh
   const [activeTab, setActiveTab] = useState('shared-data');
   
-  // Refresh dashboard when returning to this page or when query parameters change
+  // Handle URL query parameters for tab selection and refresh
   useEffect(() => {
     const { tab, refresh } = router.query;
     
@@ -73,24 +71,9 @@ export default function PatientDashboardPage() {
         { shallow: true }
       );
     }
-    
-    const handleRouteChange = (url: string) => {
-      // If returning to dashboard from another page
-      if (url.includes('/patient/dashboard')) {
-        // Small delay to ensure navigation is complete
-        setTimeout(() => refreshDashboard(), 300);
-      }
-    };
-
-    router.events.on('routeChangeComplete', handleRouteChange);
-    
-    // Initial refresh when component mounts
-    refreshDashboard();
-    
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChange);
-    };
-  }, [router.query, router.events, router.pathname, refreshDashboard]);
+  }, [router.query, router.pathname, refreshDashboard]);
+  
+  // Note: Removed automatic refresh on route changes and component mount to prevent infinite loops
 
   return (
     <PatientLayout>
@@ -127,12 +110,10 @@ export default function PatientDashboardPage() {
         </TabsContent>
         
         <TabsContent value="appointments" className="mt-0">
-          <div className="bg-muted p-8 rounded-lg text-center">
-            <h3 className="text-lg font-medium mb-2">Appointments Coming Soon</h3>
-            <p className="text-muted-foreground">
-              This feature is under development. You'll be able to view and manage your appointments here.
-            </p>
-          </div>
+          <AppointmentsDashboard 
+            key={`appointments-${refreshKey}`}
+            patientId={userSession?.user?.id || 'default-patient-id'}
+          />
         </TabsContent>
         
         <TabsContent value="medical-records" className="mt-0">

@@ -2,14 +2,97 @@ import { db } from './db';
 import { setupOfflineAuth } from './offline-auth';
 import { v4 as uuidv4 } from 'uuid';
 
+// Helper function to seed appointments
+async function seedAppointments() {
+  const providers = await db.providers.toArray();
+  const appointmentTypes = await db.appointmentTypes.toArray();
+  
+  if (providers.length > 0 && appointmentTypes.length > 0) {
+    // Seed sample appointments
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    // Create proper Date objects for startTime and endTime
+    const todayStart = new Date(today);
+    todayStart.setHours(9, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setMinutes(todayEnd.getMinutes() + appointmentTypes[0].duration);
+    
+    const tomorrowStart = new Date(tomorrow);
+    tomorrowStart.setHours(14, 30, 0, 0);
+    const tomorrowEnd = new Date(tomorrowStart);
+    tomorrowEnd.setMinutes(tomorrowEnd.getMinutes() + appointmentTypes[2].duration);
+    
+    const nextWeekStart = new Date(nextWeek);
+    nextWeekStart.setHours(11, 0, 0, 0);
+    const nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setMinutes(nextWeekEnd.getMinutes() + appointmentTypes[1].duration);
+
+    await db.appointments.bulkAdd([
+      {
+        id: uuidv4(),
+        title: 'X-Ray Appointment',
+        patientId: 'patient-1',
+        providerId: providers[0].id,
+        appointmentTypeId: appointmentTypes[0].id,
+        startTime: todayStart,
+        endTime: todayEnd,
+        status: 'SCHEDULED',
+        notes: 'Routine X-Ray examination',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: uuidv4(),
+        title: 'Ultrasound Appointment',
+        patientId: 'patient-2',
+        providerId: providers[1].id,
+        appointmentTypeId: appointmentTypes[2].id,
+        startTime: tomorrowStart,
+        endTime: tomorrowEnd,
+        status: 'SCHEDULED',
+        notes: 'Abdominal ultrasound',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: uuidv4(),
+        title: 'MRI Appointment',
+        patientId: 'patient-3',
+        providerId: providers[0].id,
+        appointmentTypeId: appointmentTypes[1].id,
+        startTime: nextWeekStart,
+        endTime: nextWeekEnd,
+        status: 'SCHEDULED',
+        notes: 'Brain MRI scan',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ]);
+    
+    console.log('Sample appointments seeded successfully!');
+  }
+}
+
 // Seed the offline database with initial data
 export async function seedOfflineDatabase() {
   try {
     // Check if already seeded by checking if any users exist
     const userCount = await db.users.count();
+    const appointmentCount = await db.appointments.count();
+    
+    // Clear existing appointments to fix schema mismatch
+    if (appointmentCount > 0) {
+      console.log('Clearing existing appointments to fix schema...');
+      await db.appointments.clear();
+    }
     
     if (userCount > 0) {
-      console.log('Database already seeded, skipping...');
+      console.log('Seeding appointments with correct schema...');
+      await seedAppointments();
       return;
     }
     
@@ -75,7 +158,10 @@ export async function seedOfflineDatabase() {
         updatedAt: new Date()
       }
     ]);
-    
+
+    // Seed sample appointments
+    await seedAppointments();
+
     console.log('Database seeded successfully!');
     return true;
   } catch (error) {

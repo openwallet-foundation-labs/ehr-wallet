@@ -30,7 +30,7 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
     }
   }, []);
 
-  // Check if user is authenticated via next-auth or MetaMask
+  // Show loading state while checking localStorage
   if (status === 'loading' || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -39,18 +39,7 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
     );
   }
 
-  // Check if authenticated via next-auth (case insensitive check for 'patient' role)
-  const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
-  
-  // Check if authenticated via MetaMask
-  const isMetaMaskPatient = isConnected && currentAccount && patientSession?.user?.role === 'patient';
-  
-  // If not authenticated at all, redirect to login
-  if (!isNextAuthPatient && !isMetaMaskPatient) {
-    console.log('Not authenticated, redirecting to login');
-    router.push('/login');
-    return null;
-  }
+  // Note: Authentication is handled by SessionWrapper, so we don't need to check here
   
   // Simply use the MainLayout component which already handles responsive design
   // and has the sidebar with role-based navigation

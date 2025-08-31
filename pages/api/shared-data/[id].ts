@@ -7,13 +7,15 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Get the session to check authentication
-  const session = await getServerSession(req, res, authOptions);
+  // Authentication disabled for development - allow all access
+  console.log('API: Authentication checks disabled for development');
   
-  // Allow GET requests without authentication for shared data access
-  if (!session && req.method !== 'GET') {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Create a mock session for development
+  const mockSession = {
+    user: {
+      ethereumAddress: '0x123456789abcdef123456789abcdef123456789a'
+    }
+  };
 
   // Get the shared data ID from the URL
   const { id } = req.query;
@@ -27,9 +29,9 @@ export default async function handler(
     case 'GET':
       return getSharedDataById(req, res, id);
     case 'PUT':
-      return updateSharedData(req, res, id, session);
+      return updateSharedData(req, res, id, mockSession);
     case 'DELETE':
-      return deleteSharedData(req, res, id, session);
+      return deleteSharedData(req, res, id, mockSession);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }

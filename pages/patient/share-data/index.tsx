@@ -6,16 +6,9 @@ import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 import PatientLayout from '@/components/layout/PatientLayout';
 
-// Dynamically import components that use browser APIs
-const DataSharingForm = dynamic(
-  () => import('@/components/web3/DataSharingForm'),
-  { ssr: false }
-);
-
-const ShareDisplay = dynamic(
-  () => import('@/components/web3/ShareDisplay'),
-  { ssr: false }
-);
+// Temporarily use regular imports to debug dynamic import issue
+import DataSharingForm from '@/components/web3/DataSharingForm';
+import ShareDisplay from '@/components/web3/ShareDisplay';
 
 export default function ShareDataPage() {
   const { data: session } = useSession();

@@ -94,8 +94,9 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
 
     const handleChainChanged = (chainId: string) => {
       setChainId(chainId);
-      // Reload the page on chain change as recommended by MetaMask
-      window.location.reload();
+      // TODO: Handle chain change without page reload to prevent infinite refresh loops
+      // window.location.reload(); // Commented out to prevent refresh loops
+      console.log('Chain changed to:', chainId);
     };
 
     ethereum.on('accountsChanged', handleAccountsChanged);

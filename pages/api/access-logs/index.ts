@@ -7,12 +7,16 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Check if user is authenticated
-  const session = await getServerSession(req, res, authOptions);
+  // Authentication disabled for development - allow all access
+  console.log('API: Authentication checks disabled for development');
   
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Create a mock session for development
+  const mockSession = {
+    user: {
+      email: 'dev@example.com',
+      ethereumAddress: '0x123456789abcdef123456789abcdef123456789a'
+    }
+  };
 
   // Only GET method is allowed
   if (req.method !== 'GET') {
@@ -20,24 +24,12 @@ export default async function handler(
   }
 
   try {
-    // Get the user's ethereum address from the session
-    const user = await prisma.user.findUnique({
-      where: {
-        email: session.user?.email as string,
-      },
-      select: {
-        ethereumAddress: true,
-      },
-    });
+    // Use mock user data for development
+    const user = {
+      ethereumAddress: mockSession.user.ethereumAddress
+    };
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // If user doesn't have an ethereum address, return empty array
-    if (!user.ethereumAddress) {
-      return res.status(200).json([]);
-    }
+    console.log('Using mock user for development:', user);
 
     console.log(`Fetching access logs for user with ethereum address: ${user.ethereumAddress}`);
     

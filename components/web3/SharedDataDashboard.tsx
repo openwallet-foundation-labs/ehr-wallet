@@ -108,16 +108,9 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
   };
 
   useEffect(() => {
-    // Add a timestamp parameter to the URL to force a fresh request
-    const timestamp = new Date().getTime();
-    console.log(`Loading shared records at ${timestamp}`);
+    // Load shared records on component mount
+    console.log('Loading shared records on component mount');
     loadSharedRecords(true);
-    
-    // Set up an interval to refresh data periodically (every 15 seconds)
-    const refreshInterval = setInterval(() => {
-      console.log('Periodic refresh of shared records');
-      loadSharedRecords(true);
-    }, 15000); // 15 seconds
     
     // Add event listener for visibility change to refresh when tab becomes visible
     const handleVisibilityChange = () => {
@@ -138,7 +131,6 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
     window.addEventListener('focus', handleFocus);
     
     return () => {
-      clearInterval(refreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };

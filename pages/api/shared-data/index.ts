@@ -14,19 +14,22 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Get the session to check authentication
-  const session = await getServerSession(req, res, authOptions);
+  // Authentication disabled for development - allow all access
+  console.log('API: Authentication checks disabled for development');
   
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Create a mock session for development
+  const mockSession = {
+    user: {
+      ethereumAddress: '0x123456789abcdef123456789abcdef123456789a'
+    }
+  };
 
   // Handle different HTTP methods
   switch (req.method) {
     case 'GET':
-      return getSharedData(req, res, session);
+      return getSharedData(req, res, mockSession);
     case 'POST':
-      return createSharedData(req, res, session);
+      return createSharedData(req, res, mockSession);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }

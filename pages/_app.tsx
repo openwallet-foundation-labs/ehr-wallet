@@ -18,11 +18,8 @@ import dynamic from "next/dynamic";
 import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
 
-// Dynamically import MetaMaskProvider to avoid SSR issues
-const MetaMaskProvider = dynamic(
-  () => import("@/components/web3/MetaMaskProvider"),
-  { ssr: false }
-);
+// Temporarily use regular import to debug dynamic import issue
+import { MetaMaskProvider } from "@/components/web3/MetaMaskProvider";
 
 // Create a client
 const queryClient = new QueryClient();

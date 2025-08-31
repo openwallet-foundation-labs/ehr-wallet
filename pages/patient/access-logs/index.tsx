@@ -8,11 +8,8 @@ import { AlertCircle, Clock, ExternalLink, ShieldAlert, Eye } from 'lucide-react
 import dynamic from 'next/dynamic';
 import PatientLayout from '@/components/layout/PatientLayout';
 
-// Dynamically import components that use browser APIs
-const MetaMaskProvider = dynamic(
-  () => import('@/components/web3/MetaMaskProvider'),
-  { ssr: false }
-);
+// Temporarily use regular import to debug dynamic import issue
+import { MetaMaskProvider } from '@/components/web3/MetaMaskProvider';
 
 // We'll fetch real data from the API
 

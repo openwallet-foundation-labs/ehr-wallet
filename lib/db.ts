@@ -130,6 +130,7 @@ class MockDB {
 
 // Singleton pattern to ensure we only create one instance
 let dbInstance: ImagingHubDB | MockDB;
+let initPromise: Promise<ImagingHubDB | MockDB> | null = null;
 
 // Create and export a database getter function
 export function getDb(): ImagingHubDB | MockDB {
@@ -156,7 +157,7 @@ export function getDb(): ImagingHubDB | MockDB {
 // For backward compatibility
 export const db = typeof window === 'undefined' ? new MockDB() as any : new ImagingHubDB();
 
-// Initialize the database when imported
+// Initialize the database when imported - with singleton pattern to prevent race conditions
 export async function initDatabase() {
   // Check if we're in a browser environment
   if (typeof window === 'undefined') {
@@ -164,16 +165,29 @@ export async function initDatabase() {
     return getDb();
   }
   
-  try {
-    // Get the database instance
-    const database = getDb() as ImagingHubDB;
-    
-    // Attempt to open the database
-    await database.open();
-    console.log('Dexie database initialized successfully');
-    return database;
-  } catch (error) {
-    console.error('Failed to initialize Dexie database:', error);
-    throw error;
+  // If initialization is already in progress, return the existing promise
+  if (initPromise) {
+    console.log('Database initialization already in progress, waiting...');
+    return initPromise;
   }
+  
+  // Create the initialization promise
+  initPromise = (async () => {
+    try {
+      // Get the database instance
+      const database = getDb() as ImagingHubDB;
+      
+      // Attempt to open the database
+      await database.open();
+      console.log('Dexie database initialized successfully');
+      return database;
+    } catch (error) {
+      console.error('Failed to initialize Dexie database:', error);
+      // Reset the promise so it can be retried
+      initPromise = null;
+      throw error;
+    }
+  })();
+  
+  return initPromise;
 }

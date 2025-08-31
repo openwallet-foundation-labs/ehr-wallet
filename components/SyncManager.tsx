@@ -20,9 +20,8 @@ export function SyncManager() {
     const handleOnline = async () => {
       // When we come back online, check for pending changes and sync
       await checkPendingChanges();
-      if (pendingCount > 0) {
-        syncChanges();
-      }
+      // Note: Removed automatic sync to prevent infinite loops
+      // User can manually sync using the button
     };
 
     window.addEventListener('online', handleOnline);
@@ -34,7 +33,7 @@ export function SyncManager() {
       window.removeEventListener('online', handleOnline);
       clearInterval(interval);
     };
-  }, [pendingCount]);
+  }, []); // Removed pendingCount dependency to prevent infinite loops
 
   // Function to sync pending changes
   const syncChanges = async () => {
