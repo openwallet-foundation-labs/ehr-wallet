@@ -95,8 +95,11 @@ jobs:
       - name: Run ESLint security scan
         run: npx eslint --config .eslintrc.security.js --ext .js,.jsx,.ts,.tsx . || true
 
-      # Check for hardcoded secrets
+      # Check for hardcoded secrets using TruffleHog (open source alternative)
       - name: Check for hardcoded secrets
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified

@@ -26,7 +26,7 @@ This document outlines the strategic roadmap for transforming EHR Wallet into a 
   - Added GitHub CodeQL Analysis for static code analysis (free for open source)
   - Implemented npm audit for dependency vulnerability scanning
   - Added ESLint security plugins (eslint-plugin-security, eslint-plugin-no-unsanitized)
-  - Configured Gitleaks for detecting hardcoded secrets
+  - Configured TruffleHog for detecting hardcoded secrets (open source alternative)
   - Set up weekly scheduled scans in addition to PR/push triggers
 
 ## Phase 2: Documentation & Contribution Improvements (Q4 2025)
