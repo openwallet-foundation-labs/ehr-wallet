@@ -1,0 +1,76 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+.pnpm-store
+
+# Next.js
+.next
+out
+dist
+build
+
+# Testing
+coverage
+.nyc_output
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+playwright-report
+test-results
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+
+# IDE and Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+GOVERNANCE.md
+MAINTAINERS.md
+TESTING.md
+SECURITY.md
+
+# Development files
+.eslintrc.json
+eslint.config.js
+.prettierrc
+.prettierignore
+jest.config.js
+jest.setup.js
+playwright.config.js
+hardhat.config.js
+run-hardhat-tests.js
+test-node.js
+test-setup.js
+tsconfig.tsbuildinfo
+
+# Logs
+logs
+*.log
+
+# Misc
+.cache
+tmp
+temp

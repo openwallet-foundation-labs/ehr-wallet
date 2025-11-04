@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // Enable standalone output for Docker deployments
+  output: 'standalone',
   // Turbopack is the default bundler in Next.js 16
   // Empty config silences webpack migration warning
   turbopack: {},
