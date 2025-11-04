@@ -2,7 +2,15 @@
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
+# Install dependencies for native module compilation
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    python3 \
+    make \
+    g++ \
+    pkgconfig \
+    cmake
 WORKDIR /app
 
 # Copy package files
@@ -21,6 +29,15 @@ RUN \
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
+# Install build tools needed for native modules during build
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    python3 \
+    make \
+    g++ \
+    pkgconfig \
+    cmake
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -30,6 +47,8 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Ensure proper native module compilation
+ENV PYTHON=/usr/bin/python3
 
 # Generate Prisma Client
 RUN npx prisma generate
