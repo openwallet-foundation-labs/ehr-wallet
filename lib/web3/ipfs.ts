@@ -1,13 +1,18 @@
 'use client';
 
-import { createHelia } from 'helia';
-import { unixfs } from '@helia/unixfs';
+// Import CID statically (no native dependencies)
 import { CID } from 'multiformats/cid';
 import { base58btc } from 'multiformats/bases/base58';
-import { json } from '@helia/json';
 
 // Create a Helia instance
 let heliaInstance: any = null;
+
+// Dynamic imports for Helia modules to avoid loading native modules during build
+const getHeliaModules = async () => {
+  const { createHelia } = await import('helia');
+  const { json } = await import('@helia/json');
+  return { createHelia, json };
+};
 
 // Fallback to HTTP API if Helia fails
 const uploadViaHttpApi = async (data: any): Promise<string> => {
@@ -49,8 +54,11 @@ const createHeliaClient = async () => {
   if (heliaInstance) {
     return heliaInstance;
   }
-  
+
   try {
+    // Dynamically import to avoid loading during build
+    const { createHelia } = await getHeliaModules();
+
     // Create Helia with minimal configuration to avoid delegated routing issues
     // Using a basic configuration to avoid TypeScript errors and delegated routing issues
     heliaInstance = await createHelia({
@@ -88,12 +96,13 @@ export const uploadToIpfs = async (data: any): Promise<string> => {
       // Second attempt: Use Helia
       console.log('Uploading to IPFS via Helia...');
       const helia = await createHeliaClient();
+      const { json } = await getHeliaModules();
       const jsonStorage = json(helia);
-      
+
       // Add content to IPFS
       const cid = await jsonStorage.add(data);
       console.log('Successfully uploaded to Helia with CID:', cid.toString());
-      
+
       // Return the CID (Content Identifier) as a string
       return cid.toString();
     } catch (heliaError) {
@@ -130,11 +139,12 @@ export const getFromIpfs = async (cidString: string): Promise<any> => {
       // Second attempt: Use Helia
       console.log('Retrieving from IPFS via Helia...', cidString);
       const helia = await createHeliaClient();
+      const { json } = await getHeliaModules();
       const jsonStorage = json(helia);
-      
+
       // Parse the CID string
       const cid = CID.parse(cidString);
-      
+
       // Get content from IPFS
       const content = await jsonStorage.get(cid);
       console.log('Successfully retrieved from Helia');
