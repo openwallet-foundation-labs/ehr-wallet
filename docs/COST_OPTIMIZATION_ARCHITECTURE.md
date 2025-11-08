@@ -501,6 +501,8 @@ async function commitAccessGrant(grant) {
 
 ## Cost Projections by Scale
 
+### Blockchain Costs
+
 | Patient Count | Phase 1 Annual Cost | Phase 2 Annual Cost | Savings |
 |--------------|--------------------|--------------------|---------|
 | 1,000 | $300 | $5.40 | 98.2% |
@@ -509,6 +511,32 @@ async function commitAccessGrant(grant) {
 | 1,000,000 | $300,000 | $5.40 | 99.998% |
 
 **Note:** Phase 2 costs remain constant regardless of patient count (batching efficiency).
+
+### IPFS Storage Costs
+
+**Important:** IPFS storage is NOT free for production deployments. Files require pinning services to remain persistently available.
+
+**Storage Requirements Estimation:**
+- Small health record (text/lab results): ~100 KB
+- Medium health record (X-ray): ~5 MB
+- Large health record (MRI/CT scan): ~50-500 MB
+- Average per record: ~5 MB (mixed data types)
+
+**Cost Comparison by Patient Scale:**
+
+| Patient Count | Total Storage (20 records/patient) | Filebase Cost | Pinata Cost | Web3.Storage |
+|--------------|-----------------------------------|---------------|-------------|--------------|
+| 1,000 | 100 GB | $5.99/month | $20/month | Free |
+| 10,000 | 1 TB | $5.99/month | $200-500/month | Free |
+| 100,000 | 10 TB | $59.90/month | $2,000-5,000/month | Paid |
+| 1,000,000 | 100 TB | $599/month | Custom pricing | Custom |
+
+**Recommended Storage Strategy by Scale:**
+
+1. **Pilot (<1,000 patients):** Web3.Storage free tier or Pinata free tier
+2. **Growth (1,000-10,000 patients):** Filebase ($5.99/month) or Web3.Storage
+3. **Scale (10,000-100,000 patients):** Filebase ($60-600/month) or self-hosted IPFS
+4. **Enterprise (100,000+ patients):** Self-hosted IPFS cluster + CDN ($1,000-5,000/month)
 
 ---
 
@@ -523,13 +551,15 @@ async function commitAccessGrant(grant) {
 
 **Cost Structure with Phase 2:**
 
-| Component | Annual Cost |
+| Component | Annual Cost (10,000 patients) |
 |-----------|-------------|
 | Blockchain (batching) | $5-50 |
 | Infrastructure (servers, database) | $5,000-15,000 |
-| IPFS storage (Pinata/Infura) | $1,000-5,000 |
+| IPFS storage (Filebase recommended) | $72-120 |
 | Development & operations | $100,000-200,000 |
-| **Total Operating Cost** | **~$110,000-220,000** |
+| **Total Operating Cost** | **~$105,000-215,000** |
+
+**Updated with Filebase IPFS pricing (most cost-effective option)**
 
 **Break-Even Analysis:**
 - 10,000 patients × 20 health records = 200,000 data points
@@ -540,6 +570,228 @@ async function commitAccessGrant(grant) {
 - Blockchain costs remain flat
 - Infrastructure costs scale sub-linearly (economies of scale)
 - Margins improve with scale
+
+---
+
+## IPFS Storage Optimization Strategies
+
+### Challenge: Large Healthcare Files
+
+Healthcare data includes both small (lab results) and large (medical imaging) files. IPFS costs can become significant at scale.
+
+### Storage Tier Strategy
+
+**Tier 1: Hot Storage (IPFS)**
+- Recent records (last 90 days)
+- Frequently accessed data
+- Use: Filebase or Web3.Storage
+- Cost: $5.99/TB/month
+
+**Tier 2: Warm Storage (IPFS + Archive)**
+- Records 90 days - 2 years old
+- Moderate access frequency
+- Use: Cheaper IPFS or S3-compatible storage
+- Cost: $1-3/TB/month
+
+**Tier 3: Cold Storage (Archive)**
+- Records >2 years old
+- Rarely accessed
+- Use: AWS Glacier Deep Archive or Filecoin
+- Cost: $0.99/TB/month
+
+### Compression & Deduplication
+
+**Compression:**
+```javascript
+// Before uploading to IPFS, compress large files
+const { createGzip } = require('zlib');
+const { promisify } = require('util');
+const gzip = promisify(createGzip);
+
+async function uploadHealthRecord(file) {
+    // Compress before IPFS upload
+    const compressed = await gzip(file);
+    const cid = await ipfs.add(compressed);
+
+    // Save metadata
+    await db.query(`
+        INSERT INTO health_records (ipfs_cid, is_compressed, original_size, compressed_size)
+        VALUES ($1, true, $2, $3)
+    `, [cid, file.length, compressed.length]);
+
+    console.log(`Compression ratio: ${(compressed.length / file.length * 100).toFixed(2)}%`);
+    return cid;
+}
+```
+
+**Savings:** 50-80% for medical imaging, 70-90% for text records
+
+**Deduplication:**
+```javascript
+// Check if file already exists before uploading
+async function uploadWithDedup(file) {
+    const fileHash = calculateHash(file);
+
+    // Check if we already have this file
+    const existing = await db.query(`
+        SELECT ipfs_cid FROM health_records
+        WHERE file_hash = $1
+    `, [fileHash]);
+
+    if (existing.rows.length > 0) {
+        console.log('File already exists, reusing CID');
+        return existing.rows[0].ipfs_cid;
+    }
+
+    // Upload new file
+    return await uploadHealthRecord(file);
+}
+```
+
+**Savings:** 20-40% for duplicate X-rays, lab templates
+
+### Selective IPFS Storage
+
+**Strategy:** Not all data needs to be on IPFS
+
+```javascript
+// Determine storage location based on file type and size
+function getStorageStrategy(file) {
+    const strategies = {
+        IPFS_PUBLIC: 'ipfs',           // For data licensing
+        IPFS_PRIVATE: 'ipfs_encrypted', // For patient-shared data
+        DATABASE: 'postgres',           // For small text records
+        S3: 's3'                        // For large imaging files
+    };
+
+    // Small text records (lab results, prescriptions)
+    if (file.type === 'text' && file.size < 100_000) {
+        return strategies.DATABASE; // Store directly in PostgreSQL
+    }
+
+    // Medium files (X-rays, documents)
+    if (file.size < 10_000_000) {
+        return strategies.IPFS_PRIVATE; // IPFS with encryption
+    }
+
+    // Large files (MRI, CT scans)
+    if (file.size > 10_000_000) {
+        return strategies.S3; // S3 or similar, reference in IPFS
+    }
+
+    return strategies.IPFS_PRIVATE;
+}
+```
+
+**Hybrid Storage Example:**
+
+```javascript
+async function storeHealthRecord(record) {
+    const strategy = getStorageStrategy(record.file);
+
+    switch (strategy) {
+        case 'postgres':
+            // Store directly in database (encrypted)
+            await db.query(`
+                INSERT INTO health_records (patient_id, data_encrypted, type)
+                VALUES ($1, $2, $3)
+            `, [record.patientId, encrypt(record.file), record.type]);
+            break;
+
+        case 'ipfs_encrypted':
+            // Encrypt and store in IPFS
+            const encrypted = encrypt(record.file);
+            const cid = await ipfs.add(encrypted);
+            await db.query(`
+                INSERT INTO health_records (patient_id, ipfs_cid, encryption_key)
+                VALUES ($1, $2, $3)
+            `, [record.patientId, cid, record.encryptionKey]);
+            break;
+
+        case 's3':
+            // Store large file in S3, reference in IPFS
+            const s3Url = await s3.upload(record.file);
+            const manifest = {
+                type: 'redirect',
+                url: s3Url,
+                hash: calculateHash(record.file)
+            };
+            const manifestCid = await ipfs.add(JSON.stringify(manifest));
+            await db.query(`
+                INSERT INTO health_records (patient_id, ipfs_cid, storage_backend)
+                VALUES ($1, $2, 's3')
+            `, [record.patientId, manifestCid]);
+            break;
+    }
+}
+```
+
+### Cost Optimization: IPFS vs Traditional Storage
+
+**Comparison for 10,000 Patients (1 TB total):**
+
+| Storage Solution | Monthly Cost | Annual Cost | Pros | Cons |
+|-----------------|--------------|-------------|------|------|
+| **Filebase (IPFS)** | $5.99 | $72 | Decentralized, IPFS native | Single vendor |
+| **Web3.Storage** | Free (1TB) | $0 | Free, Filecoin-backed | Slower retrieval |
+| **Pinata** | $200-500 | $2,400-6,000 | Reliable, good DX | Expensive at scale |
+| **Self-hosted IPFS** | $100-200 | $1,200-2,400 | Full control | DevOps overhead |
+| **AWS S3** | $23 | $276 | Fast, reliable | Centralized |
+| **Hybrid (IPFS + S3)** | $15-30 | $180-360 | Best of both | More complex |
+
+**Recommended Hybrid Approach:**
+
+```
+┌─────────────────────────────────────────────┐
+│ Small Records (<100 KB)                     │
+│ → PostgreSQL (encrypted)                    │
+│ → Cost: Included in database costs          │
+│ → 20% of records, <1% of storage            │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ Medium Records (100 KB - 10 MB)             │
+│ → Filebase IPFS                             │
+│ → Cost: $5.99/TB/month                      │
+│ → 60% of records, 30% of storage            │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ Large Records (>10 MB)                      │
+│ → AWS S3 with IPFS manifest/hash            │
+│ → Cost: $23/TB/month                        │
+│ → 20% of records, 69% of storage            │
+└─────────────────────────────────────────────┘
+```
+
+**Hybrid Cost for 1 TB:**
+- PostgreSQL: $0 (included)
+- Filebase (300 GB): $5.99/month
+- S3 (700 GB): $16/month
+- **Total: ~$22/month** vs $5.99 (pure IPFS) or $23 (pure S3)
+
+### Content Addressable Storage Benefits
+
+**IPFS provides content addressing** - files are identified by their hash, not location.
+
+**Benefits for Healthcare:**
+
+1. **Deduplication:** Same X-ray uploaded twice = single storage
+2. **Integrity:** File hash changes if data is tampered with
+3. **Verifiability:** Can prove file contents match blockchain record
+4. **Censorship resistance:** No single point of failure
+
+**Cost Impact Example:**
+
+```javascript
+// Traditional storage: Every upload creates new file
+Traditional: 10,000 patients × 20 records = 200,000 files
+
+// IPFS: Duplicate standard forms/templates deduplicated
+IPFS: 150,000 unique files (25% deduplication)
+Savings: 50 records × 5 MB = 250 GB saved
+Cost savings: $250 GB × $0.006/GB = $1.50/month
+```
 
 ---
 
