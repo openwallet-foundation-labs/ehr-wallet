@@ -20,9 +20,9 @@ Track our development progress and upcoming features on our public GitHub Projec
 
 ## Key Patient-Centric Features
 
-- **Blockchain-Based Health Records**: Secure, immutable patient records stored with Ethereum and IPFS technologies
+- **Blockchain-Based Health Records**: Secure, immutable patient records stored on blockchain with IPFS technologies
 - **Patient Data Ownership**: Complete control over personal health information with granular access permissions
-- **MetaMask Integration**: Connect securely with your Ethereum wallet for identity verification and data access
+- **MetaMask Integration**: Connect securely with your Web3 wallet for identity verification and data access
 - **Selective Data Sharing**: Share specific medical records with authorized providers via smart contracts
 - **Advanced Patient Portal**: View, manage, and track all personal health information through an intuitive interface
 - **Smart Filtering Options**: Filter personal medical history by Last Visit date or Date of Birth with user-friendly calendar interface
@@ -45,7 +45,7 @@ http://localhost:3000
 
 ### Setting Up Your EHR Wallet
 
-1. **Connect Your Wallet**: Use MetaMask or another Ethereum wallet to connect to the platform
+1. **Connect Your Wallet**: Use MetaMask or another Web3 wallet to connect to the platform
 2. **Grant Initial Access**: Approve the connection to establish your EHR Wallet identity
 3. **Verify Your Identity**: Complete the secure verification process to ensure data sovereignty
 
@@ -67,10 +67,11 @@ This project leverages modern web and blockchain technologies:
 
 - **Next.js**: React framework providing hybrid static & server rendering
 - **TypeScript**: For type safety and improved developer experience
-- **Ethereum Blockchain**: For secure, verifiable patient record tracking
+- **Blockchain**: Polygon network for secure, verifiable patient record tracking with low transaction costs
 - **IPFS**: InterPlanetary File System for decentralized storage of medical data
-- **Web3.js**: JavaScript library interacting with the Ethereum blockchain
+- **Ethers.js**: JavaScript library for blockchain interactions
 - **MetaMask**: Wallet integration for secure patient authentication
+- **Hardhat**: Ethereum development environment for smart contract deployment
 - **Prisma**: ORM for traditional database access
 - **shadcn/ui**: Modern component library for the user interface
 - **Tailwind CSS**: Utility-first CSS framework
@@ -89,12 +90,79 @@ This project leverages modern web and blockchain technologies:
 ## Data Models
 
 The application manages several key models related to patient data:
-- **User**: Extended with Ethereum address for blockchain identity
+- **User**: Extended with Web3 address for blockchain identity
 - **Patient**: Core medical information with blockchain references
 - **HealthRecord**: Individual health record entries with IPFS content identifiers
 - **AccessGrant**: Smart contract-based permissions for record access
 - **Appointment**: Scheduled medical imaging appointments
 - **Provider**: Healthcare providers with verified blockchain identities
+
+## Smart Contract Deployment
+
+The EHR Wallet uses smart contracts deployed on Polygon network for secure access control.
+
+### Prerequisites
+
+1. **Set up environment variables**: Copy `.env.example` to `.env.local` and fill in the required values:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Required environment variables**:
+   - `POLYGON_API_KEY`: Get from [Alchemy](https://www.alchemy.com/)
+   - `WALLET_PRIVATE_KEY`: Your wallet's private key (NEVER commit this!)
+   - `POLYGONSCAN_API_KEY`: Get from [PolygonScan](https://polygonscan.com/apis)
+
+3. **Fund your wallet**: Ensure your wallet has MATIC tokens
+   - For testnet: Get free MATIC from [Polygon Faucet](https://faucet.polygon.technology/)
+   - For mainnet: Purchase MATIC from an exchange
+
+### Deploy to Polygon Amoy Testnet
+
+```bash
+# Option 1: Using the deployment script
+./scripts/deploy-testnet.sh
+
+# Option 2: Using npm
+npm run deploy:testnet
+
+# Option 3: Using hardhat directly
+npx hardhat run scripts/deploy.js --network amoy
+```
+
+### Deploy to Polygon Mainnet
+
+```bash
+# Option 1: Using the deployment script (includes confirmation prompt)
+./scripts/deploy-mainnet.sh
+
+# Option 2: Using npm
+npm run deploy:mainnet
+
+# Option 3: Using hardhat directly
+npx hardhat run scripts/deploy.js --network polygon
+```
+
+### Verify Contract on PolygonScan
+
+After deployment, verify your contract to make the source code publicly available:
+
+```bash
+# For Amoy testnet
+npx hardhat verify --network amoy <CONTRACT_ADDRESS>
+
+# For Polygon mainnet
+npx hardhat verify --network polygon <CONTRACT_ADDRESS>
+```
+
+### Deployment Artifacts
+
+After successful deployment:
+- Contract address is saved to `deployments/<network>.json`
+- `.env.local` is automatically updated with `NEXT_PUBLIC_ACCESS_CONTRACT_ADDRESS`
+- View your deployment on PolygonScan:
+  - Testnet: `https://amoy.polygonscan.com/address/<CONTRACT_ADDRESS>`
+  - Mainnet: `https://polygonscan.com/address/<CONTRACT_ADDRESS>`
 
 ## License
 

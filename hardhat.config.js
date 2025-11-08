@@ -7,6 +7,7 @@ const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY || "0x00000000000000000000000
 const ETHEREUM_API_KEY = process.env.ETHEREUM_API_KEY || "";
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
+const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -19,6 +20,8 @@ module.exports = {
       }
     }
   },
+  // Default network set to Polygon Amoy testnet
+  defaultNetwork: "amoy",
   networks: {
     hardhat: {
       chainId: 1337
@@ -27,27 +30,37 @@ module.exports = {
       url: "http://127.0.0.1:8545/",
       accounts: [PRIVATE_KEY]
     },
-    // For testnet deployments
+    // Polygon testnet (Amoy - replaces deprecated Mumbai)
+    amoy: {
+      url: `https://polygon-amoy.g.alchemy.com/v2/${POLYGON_API_KEY}`,
+      accounts: [PRIVATE_KEY],
+      chainId: 80002,
+      gasPrice: 35000000000 // 35 gwei
+    },
+    // Polygon mainnet
+    polygon: {
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}`,
+      accounts: [PRIVATE_KEY],
+      chainId: 137,
+      gasPrice: 35000000000 // 35 gwei
+    },
+    // Ethereum networks (fallback support)
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ETHEREUM_API_KEY}`,
       accounts: [PRIVATE_KEY]
     },
-    mumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${POLYGON_API_KEY}`,
-      accounts: [PRIVATE_KEY]
-    },
-    // For mainnet deployments
     ethereum: {
       url: `https://eth-mainnet.g.alchemy.com/v2/${ETHEREUM_API_KEY}`,
-      accounts: [PRIVATE_KEY]
-    },
-    polygon: {
-      url: `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}`,
       accounts: [PRIVATE_KEY]
     }
   },
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY
+    apiKey: {
+      polygon: POLYGONSCAN_API_KEY,
+      polygonAmoy: POLYGONSCAN_API_KEY,
+      mainnet: ETHERSCAN_API_KEY,
+      sepolia: ETHERSCAN_API_KEY
+    }
   },
   paths: {
     sources: "./contracts",

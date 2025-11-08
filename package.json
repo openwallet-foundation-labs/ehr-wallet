@@ -13,7 +13,12 @@
     "test:e2e": "playwright test",
     "test:hardhat": "node run-hardhat-tests.js",
     "db:reset": "prisma migrate reset --force",
-    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network amoy",
+    "deploy:mainnet": "npx hardhat run scripts/deploy.js --network polygon",
+    "deploy:localhost": "npx hardhat run scripts/deploy.js --network localhost",
+    "verify:testnet": "npx hardhat verify --network amoy",
+    "verify:mainnet": "npx hardhat verify --network polygon"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

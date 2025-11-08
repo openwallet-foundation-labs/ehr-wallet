@@ -35,3 +35,14 @@ next-env.d.ts
 
 # Playwright
 test-results
+
+# Hardhat
+cache
+artifacts
+typechain-types
+deployments/*.json
+coverage
+coverage.json
+
+# Smart contract compilation
+types/contracts

@@ -120,13 +120,13 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
   // Connect wallet function
   const connectWallet = async (): Promise<string | null> => {
     setError(null);
-    
+
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       setError('Browser environment required');
       return null;
     }
-    
+
     if (!isMetaMaskInstalled) {
       setError('MetaMask is not installed. Please install MetaMask to continue.');
       return null;
@@ -135,13 +135,54 @@ export const MetaMaskProvider = ({ children }: MetaMaskProviderProps) => {
     try {
       const ethereum = (window as any).ethereum;
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-      
+
       if (accounts.length > 0) {
         setCurrentAccount(accounts[0]);
         setIsConnected(true);
+
+        // Prompt user to switch to Polygon network if not already on it
+        const currentChainId = await ethereum.request({ method: 'eth_chainId' });
+        const polygonChainId = '0x89'; // Polygon mainnet = 137 = 0x89
+        const polygonTestnetChainId = '0x13882'; // Polygon Amoy testnet = 80002 = 0x13882
+
+        // If not on Polygon network, suggest switching
+        if (currentChainId !== polygonChainId && currentChainId !== polygonTestnetChainId) {
+          try {
+            // Try to switch to Polygon mainnet
+            await ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: polygonChainId }],
+            });
+          } catch (switchError: any) {
+            // This error code indicates that the chain has not been added to MetaMask
+            if (switchError.code === 4902) {
+              try {
+                await ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [
+                    {
+                      chainId: polygonChainId,
+                      chainName: 'Polygon Mainnet',
+                      nativeCurrency: {
+                        name: 'MATIC',
+                        symbol: 'MATIC',
+                        decimals: 18
+                      },
+                      rpcUrls: ['https://polygon-rpc.com/'],
+                      blockExplorerUrls: ['https://polygonscan.com/']
+                    }
+                  ],
+                });
+              } catch (addError) {
+                console.error('Error adding Polygon network:', addError);
+              }
+            }
+          }
+        }
+
         return accounts[0];
       }
-      
+
       return null;
     } catch (err: any) {
       console.error('Error connecting wallet:', err);
