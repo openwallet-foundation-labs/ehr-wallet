@@ -43,8 +43,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
   const routes = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/patients", label: "Patients", icon: Users },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/patient/settings", label: "Settings", icon: Settings },
   ];
   
   const isActive = (path: string) => {
@@ -59,7 +58,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
         <SheetContent side="left" className="w-[240px] sm:w-[300px]">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between py-2">
-              <div className="font-bold text-lg">{isPatient ? "EHR Wallet" : "GlobalRad"}</div>
+              <div className="font-bold text-lg">EHR Wallet</div>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
@@ -90,7 +89,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
             </nav>
             <div className="border-t py-4 mt-auto">
               <div className="text-xs text-muted-foreground">
-                <p>{isPatient ? "EHR Wallet" : "GlobalRad"} v0.1.0</p>
+                <p>EHR Wallet v0.1.0</p>
                 <p className="mt-1">© 2025 RadGlobal</p>
               </div>
             </div>

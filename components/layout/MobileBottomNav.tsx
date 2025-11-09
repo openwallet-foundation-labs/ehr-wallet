@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Home, Users, Calendar, FileText, Settings } from "lucide-react";
+import { Home, Share, ClipboardList, Settings } from "lucide-react";
 
 export function MobileBottomNav() {
   const router = useRouter();
-  
+
   const routes = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/patients", label: "Patients", icon: Users },
-    { href: "/schedule", label: "Schedule", icon: Calendar, highlight: true },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/patient/share-data", label: "Share", icon: Share },
+    { href: "/patient/access-logs", label: "Logs", icon: ClipboardList },
+    { href: "/patient/settings", label: "Settings", icon: Settings },
   ];
   
   const isActive = (path: string) => {

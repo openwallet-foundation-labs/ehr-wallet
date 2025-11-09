@@ -77,29 +77,21 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   // Use the determined role
   const userRole = isPatient ? "PATIENT" : (session?.user?.role || "");
   
-  // Admin/Staff links - only shown to non-patient users
-  const adminLinks = [
-    { name: "Dashboard", path: "/", icon: <Database className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
-    { name: "Patient Registration", path: "/patients/register", icon: <User className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
-    { name: "Patient List", path: "/patients", icon: <Users className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] },
-    { name: "Scheduling", path: "/scheduling", icon: <Calendar className="w-5 h-5" />, roles: ["ADMIN", "STAFF"] }
-  ];
-  
-  // Patient links - only shown to patients
+  // Patient links - application is now patient-only
   const patientLinks = [
-    { name: "Dashboard", path: "/patient/dashboard", icon: <Database className="w-5 h-5" />, roles: ["PATIENT"] },
-    { name: "Share Data", path: "/patient/share-data", icon: <Share className="w-5 h-5" />, roles: ["PATIENT"] },
-    { name: "Access Logs", path: "/patient/access-logs", icon: <ClipboardList className="w-5 h-5" />, roles: ["PATIENT"] },
-    { name: "Connect Wallet", path: "/patient/wallet", icon: <Wallet className="w-5 h-5" />, roles: ["PATIENT"] }
+    { name: "Dashboard", path: "/", icon: <Database className="w-5 h-5" /> },
+    { name: "Share Data", path: "/patient/share-data", icon: <Share className="w-5 h-5" /> },
+    { name: "Access Logs", path: "/patient/access-logs", icon: <ClipboardList className="w-5 h-5" /> },
+    { name: "Connect Wallet", path: "/patient/wallet", icon: <Wallet className="w-5 h-5" /> }
   ];
-  
-  // Settings links - shown to all users but with different paths
+
+  // Settings links
   const settingsLinks = [
-    { name: "Settings", path: userRole === "PATIENT" ? "/patient/settings" : "/settings", icon: <Settings className="w-5 h-5" /> }
+    { name: "Settings", path: "/patient/settings", icon: <Settings className="w-5 h-5" /> }
   ];
-  
-  // Filter links based on user role
-  const links = isPatient ? patientLinks : adminLinks;
+
+  // Use patient links for all users
+  const links = patientLinks;
   
   // Mobile overlay that closes when clicked outside
   if (isMobile) {
@@ -120,7 +112,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="p-4 border-b border-border">
             <div className="flex justify-between items-center">
               <h1 className="text-xl font-semibold text-primary">
-                {userRole === "PATIENT" ? "EHR Wallet" : "GlobalRad"}
+                EHR Wallet
               </h1>
               {/* Close button removed to avoid duplicate X icons */}
             </div>
