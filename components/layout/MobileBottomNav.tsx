@@ -22,15 +22,13 @@ export function MobileBottomNav() {
         {routes.map((route) => {
           const Icon = route.icon;
           return (
-            <Link 
+            <Link
               key={route.href}
               href={route.href}
               className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
                 isActive(route.href)
                   ? "text-primary"
                   : "text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
-              } ${
-                route.highlight ? "font-semibold" : ""
               }`}
             >
               <span className={
@@ -41,7 +39,7 @@ export function MobileBottomNav() {
                 <Icon className={
                   isActive(route.href)
                     ? "h-6 w-6 text-white"
-                    : `${route.highlight ? "h-6 w-6" : "h-5 w-5"}`
+                    : "h-5 w-5"
                 } />
               </span>
               <span className={
