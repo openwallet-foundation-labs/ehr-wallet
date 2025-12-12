@@ -2,7 +2,7 @@
  * Integration tests for FHIR Patient API endpoints
  */
 
-import { testApiHandler } from 'next-test-api-route-handler';
+import { NextApiRequest, NextApiResponse } from 'next';
 import patientIndexHandler from '@/pages/api/fhir/Patient/index';
 import patientIdHandler from '@/pages/api/fhir/Patient/[id]';
 import { PrismaClient } from '@prisma/client';
@@ -26,6 +26,27 @@ jest.mock('@prisma/client', () => {
 });
 
 const mockPrisma = new PrismaClient();
+
+// Helper to create mock request and response
+function createMocks(method: string, query: any = {}, body: any = {}) {
+  const req: Partial<NextApiRequest> = {
+    method,
+    query,
+    body,
+    headers: {
+      host: 'localhost:3000',
+    },
+  };
+
+  const res: Partial<NextApiResponse> = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+    setHeader: jest.fn(),
+    end: jest.fn(),
+  };
+
+  return { req: req as NextApiRequest, res: res as NextApiResponse };
+}
 
 describe('FHIR Patient API', () => {
   beforeEach(() => {
@@ -52,66 +73,58 @@ describe('FHIR Patient API', () => {
       (mockPrisma.patient.findMany as jest.Mock).mockResolvedValue(mockPatients);
       (mockPrisma.patient.count as jest.Mock).mockResolvedValue(1);
 
-      await testApiHandler({
-        handler: patientIndexHandler,
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'GET' });
-          const json = await res.json();
+      const { req, res } = createMocks('GET');
+      await patientIndexHandler(req, res);
 
-          expect(res.status).toBe(200);
-          expect(json.resourceType).toBe('Bundle');
-          expect(json.type).toBe('searchset');
-          expect(json.total).toBe(1);
-          expect(json.entry).toHaveLength(1);
-          expect(json.entry[0].resource.resourceType).toBe('Patient');
-          expect(json.entry[0].resource.id).toBe('pat-1');
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'Bundle',
+        type: 'searchset',
+        total: 1,
+        entry: expect.arrayContaining([
+          expect.objectContaining({
+            resource: expect.objectContaining({
+              resourceType: 'Patient',
+              id: 'pat-1',
+            }),
+          }),
+        ]),
+      }));
     });
 
     it('should support search by name', async () => {
       (mockPrisma.patient.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.patient.count as jest.Mock).mockResolvedValue(0);
 
-      await testApiHandler({
-        handler: patientIndexHandler,
-        params: { name: 'John' },
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'GET' });
+      const { req, res } = createMocks('GET', { name: 'John' });
+      await patientIndexHandler(req, res);
 
-          expect(res.status).toBe(200);
-          expect(mockPrisma.patient.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-              where: expect.objectContaining({
-                name: expect.objectContaining({
-                  contains: 'John',
-                }),
-              }),
-            })
-          );
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(mockPrisma.patient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            name: expect.objectContaining({
+              contains: 'John',
+            }),
+          }),
+        })
+      );
     });
 
     it('should support pagination', async () => {
       (mockPrisma.patient.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.patient.count as jest.Mock).mockResolvedValue(100);
 
-      await testApiHandler({
-        handler: patientIndexHandler,
-        params: { _count: '10', _offset: '20' },
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'GET' });
+      const { req, res } = createMocks('GET', { _count: '10', _offset: '20' });
+      await patientIndexHandler(req, res);
 
-          expect(res.status).toBe(200);
-          expect(mockPrisma.patient.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-              take: 10,
-              skip: 20,
-            })
-          );
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(mockPrisma.patient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 10,
+          skip: 20,
+        })
+      );
     });
   });
 
@@ -152,46 +165,30 @@ describe('FHIR Patient API', () => {
       (mockPrisma.patient.count as jest.Mock).mockResolvedValue(1);
       (mockPrisma.patient.create as jest.Mock).mockResolvedValue(createdPatient);
 
-      await testApiHandler({
-        handler: patientIndexHandler,
-        test: async ({ fetch }) => {
-          const res = await fetch({
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/fhir+json',
-            },
-            body: JSON.stringify(fhirPatient),
-          });
+      const { req, res } = createMocks('POST', {}, fhirPatient);
+      await patientIndexHandler(req, res);
 
-          const json = await res.json();
-
-          expect(res.status).toBe(201);
-          expect(json.resourceType).toBe('Patient');
-          expect(json.id).toBe('pat-new');
-          expect(res.headers.get('Location')).toContain('/Patient/pat-new');
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.setHeader).toHaveBeenCalledWith('Location', expect.stringContaining('/Patient/pat-new'));
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'Patient',
+        id: 'pat-new',
+      }));
     });
 
     it('should reject invalid resource type', async () => {
-      await testApiHandler({
-        handler: patientIndexHandler,
-        test: async ({ fetch }) => {
-          const res = await fetch({
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/fhir+json',
-            },
-            body: JSON.stringify({ resourceType: 'Observation' }),
-          });
+      const { req, res } = createMocks('POST', {}, { resourceType: 'Observation' });
+      await patientIndexHandler(req, res);
 
-          const json = await res.json();
-
-          expect(res.status).toBe(400);
-          expect(json.resourceType).toBe('OperationOutcome');
-          expect(json.issue[0].severity).toBe('error');
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'OperationOutcome',
+        issue: expect.arrayContaining([
+          expect.objectContaining({
+            severity: 'error',
+          }),
+        ]),
+      }));
     });
   });
 
@@ -212,36 +209,28 @@ describe('FHIR Patient API', () => {
 
       (mockPrisma.patient.findUnique as jest.Mock).mockResolvedValue(mockPatient);
 
-      await testApiHandler({
-        handler: patientIdHandler,
-        params: { id: 'pat-123' },
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'GET' });
-          const json = await res.json();
+      const { req, res } = createMocks('GET', { id: 'pat-123' });
+      await patientIdHandler(req, res);
 
-          expect(res.status).toBe(200);
-          expect(json.resourceType).toBe('Patient');
-          expect(json.id).toBe('pat-123');
-          expect(res.headers.get('Content-Type')).toContain('application/fhir+json');
-          expect(res.headers.get('ETag')).toBeDefined();
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'Patient',
+        id: 'pat-123',
+      }));
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', expect.stringContaining('application/fhir+json'));
+      expect(res.setHeader).toHaveBeenCalledWith('ETag', expect.any(String));
     });
 
     it('should return 404 for non-existent patient', async () => {
       (mockPrisma.patient.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await testApiHandler({
-        handler: patientIdHandler,
-        params: { id: 'nonexistent' },
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'GET' });
-          const json = await res.json();
+      const { req, res } = createMocks('GET', { id: 'nonexistent' });
+      await patientIdHandler(req, res);
 
-          expect(res.status).toBe(404);
-          expect(json.resourceType).toBe('OperationOutcome');
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'OperationOutcome',
+      }));
     });
   });
 
@@ -280,24 +269,13 @@ describe('FHIR Patient API', () => {
         ],
       };
 
-      await testApiHandler({
-        handler: patientIdHandler,
-        params: { id: 'pat-123' },
-        test: async ({ fetch }) => {
-          const res = await fetch({
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/fhir+json',
-            },
-            body: JSON.stringify(fhirUpdate),
-          });
+      const { req, res } = createMocks('PUT', { id: 'pat-123' }, fhirUpdate);
+      await patientIdHandler(req, res);
 
-          const json = await res.json();
-
-          expect(res.status).toBe(200);
-          expect(json.resourceType).toBe('Patient');
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        resourceType: 'Patient',
+      }));
     });
   });
 
@@ -305,15 +283,11 @@ describe('FHIR Patient API', () => {
     it('should delete a patient', async () => {
       (mockPrisma.patient.delete as jest.Mock).mockResolvedValue({});
 
-      await testApiHandler({
-        handler: patientIdHandler,
-        params: { id: 'pat-123' },
-        test: async ({ fetch }) => {
-          const res = await fetch({ method: 'DELETE' });
+      const { req, res } = createMocks('DELETE', { id: 'pat-123' });
+      await patientIdHandler(req, res);
 
-          expect(res.status).toBe(204);
-        },
-      });
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.end).toHaveBeenCalled();
     });
   });
 });
