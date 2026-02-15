@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Commit Message Normalizer Hook
+# Validates Conventional Commits format and adds Nightshift trailers
+
+COMMIT_MSG_FILE="$1"
+
+# Extract first non-empty, non-comment line as subject
+SUBJECT=""
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    [[ "$line" =~ ^# ]] && continue
+    SUBJECT="$line"
+    break
+done < "$COMMIT_MSG_FILE"
+
+# Skip if it's a merge or revert commit
+if [[ "$SUBJECT" =~ ^Merge\ branch ]] || [[ "$SUBJECT" =~ ^Revert ]]; then
+    exit 0
+fi
+
+# Validate Conventional Commits format: <type>(<scope>): <subject>
+if ! echo "$SUBJECT" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci|revert)(\([a-z0-9-]+\))?: .+'; then
+    echo "ERROR: Commit message does not follow Conventional Commits format."
+    echo ""
+    echo "Expected format: <type>(<scope>): <subject>"
+    echo ""
+    echo "Valid types: feat, fix, docs, style, refactor, perf, test, chore, ci, revert"
+    echo "Example: feat(auth): add user login functionality"
+    echo ""
+    echo "Your subject line: $SUBJECT"
+    exit 1
+fi
+
+# Check if Nightshift trailers already exist
+if ! grep -q "^Nightshift-Task:" "$COMMIT_MSG_FILE"; then
+    echo "" >> "$COMMIT_MSG_FILE"
+    echo "Nightshift-Task: commit-normalize" >> "$COMMIT_MSG_FILE"
+    echo "Nightshift-Ref: https://github.com/marcus/nightshift" >> "$COMMIT_MSG_FILE"
+fi
+
+exit 0
