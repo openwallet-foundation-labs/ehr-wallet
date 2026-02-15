@@ -223,3 +223,48 @@ npm run verify:mainnet <CONTRACT_ADDRESS>
 3. Begin Phase 2 batch processing implementation
 4. Set up monitoring for deployment costs and transaction volumes
 5. Create pilot deployment plan for initial patient cohort
+
+## Commit Message Guidelines
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) format for commit messages. A git commit message template and validation hook are provided to ensure consistency.
+
+### Commit Message Format
+
+```
+<type>(<scope>): <subject>
+```
+
+**Types:**
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only changes
+- `style` - White-space, formatting, etc (no code meaning change)
+- `refactor` - Code change that neither fixes a bug nor adds a feature
+- `perf` - Performance improvement
+- `test` - Adding or correcting tests
+- `chore` - Build process or auxiliary tools changes
+- `ci` - CI configuration files and scripts
+- `revert` - Revert a commit
+
+**Examples:**
+```
+feat(auth): add password reset functionality
+fix(api): resolve user data validation error
+docs(readme): update installation instructions
+perf(db): optimize query performance for patient list
+```
+
+### Automatic Attribution
+
+The `commit-msg` git hook automatically appends Nightshift trailers:
+```
+Nightshift-Task: commit-normalize
+Nightshift-Ref: https://github.com/marcus/nightshift
+```
+
+### Using the Commit Template
+
+The template is automatically used when running `git commit`. To use it manually:
+```bash
+git commit -t .gitmessage.txt
+```

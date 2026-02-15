@@ -1,0 +1,24 @@
+# Conventional Commit Message Format
+#
+# <type>(<scope>): <subject>
+#
+# Types:
+#   feat     - New feature
+#   fix      - Bug fix
+#   docs     - Documentation only changes
+#   style    - Changes that do not affect the meaning of the code (white-space, formatting, etc)
+#   refactor - Code change that neither fixes a bug nor adds a feature
+#   perf     - Performance improvement
+#   test     - Adding missing tests or correcting existing tests
+#   chore    - Changes to the build process or auxiliary tools
+#   ci       - Changes to CI configuration files and scripts
+#   revert   - Revert a commit
+#
+# Examples:
+#   feat(auth): add password reset functionality
+#   fix(api): resolve user data validation error
+#   docs(readme): update installation instructions
+#
+# Nightshift Attribution (auto-added by commit-msg hook):
+# Nightshift-Task: commit-normalize
+# Nightshift-Ref: https://github.com/marcus/nightshift
