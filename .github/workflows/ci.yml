@@ -9,7 +9,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+
     # Set up environment variables for the entire job
     env:
       # Database connection
@@ -18,25 +19,27 @@ jobs:
       NEXT_PUBLIC_PINATA_API_KEY: ${{ secrets.NEXT_PUBLIC_PINATA_API_KEY }}
       NEXT_PUBLIC_PINATA_SECRET_API_KEY: ${{ secrets.NEXT_PUBLIC_PINATA_SECRET_API_KEY }}
       NEXT_PUBLIC_PINATA_JWT: ${{ secrets.NEXT_PUBLIC_PINATA_JWT }}
+      # Auth
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
 
-    
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      
+          version: 9
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      
+
       - name: Validate environment variables
         run: |
           echo "Checking required environment variables..."
@@ -46,23 +49,20 @@ jobs:
           [ -z "$NEXT_PUBLIC_PINATA_JWT" ] && echo "⚠️ NEXT_PUBLIC_PINATA_JWT is not set" || echo "✅ NEXT_PUBLIC_PINATA_JWT is set"
           [ -z "$NEXTAUTH_URL" ] && echo "⚠️ NEXTAUTH_URL is not set" || echo "✅ NEXTAUTH_URL is set"
           [ -z "$NEXTAUTH_SECRET" ] && echo "⚠️ NEXTAUTH_SECRET is not set" || echo "✅ NEXTAUTH_SECRET is set"
-      
+
       - name: Lint
-        run: pnpm run lint || true
-      
+        run: pnpm run lint
+
       - name: Build
         run: pnpm run build
-      
-      # Skip actual database tests in CI if needed
-      - name: Set up test database mock
-        run: |
-          echo "Setting up database mock for tests..."
-          # Create a script to mock Prisma client for tests
-          cat > prisma-mock-setup.js << 'EOL'
-          console.log('Setting up Prisma mock for tests');
-          // This will be executed before tests to ensure Prisma client is properly mocked
-          EOL
-          node prisma-mock-setup.js
-      
-      - name: Test
-        run: pnpm test || true
+
+      - name: Test with coverage
+        run: pnpm test:coverage
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: coverage/
+          retention-days: 7
