@@ -2,8 +2,11 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config({ path: ".env.local" });
 
-// Load environment variables if available (add them to .env.local)
-const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000000";
+// Load environment variables - require WALLET_PRIVATE_KEY to be set
+const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
+if (!PRIVATE_KEY) {
+  throw new Error("WALLET_PRIVATE_KEY environment variable is required. Copy .env.example to .env.local and configure.");
+}
 const ETHEREUM_API_KEY = process.env.ETHEREUM_API_KEY || "";
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";

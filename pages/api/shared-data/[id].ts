@@ -7,19 +7,16 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Authentication disabled for development - allow all access
-  console.log('API: Authentication checks disabled for development');
-  
-  // Create a mock session for development
-  const mockSession = {
-    user: {
-      ethereumAddress: '0x123456789abcdef123456789abcdef123456789a'
-    }
-  };
+  // Require authentication for all requests
+  const session = await getServerSession(req, res, authOptions);
+
+  if (!session || !session.user?.ethereumAddress) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
   // Get the shared data ID from the URL
   const { id } = req.query;
-  
+
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid shared data ID' });
   }
@@ -29,9 +26,9 @@ export default async function handler(
     case 'GET':
       return getSharedDataById(req, res, id);
     case 'PUT':
-      return updateSharedData(req, res, id, mockSession);
+      return updateSharedData(req, res, id, session);
     case 'DELETE':
-      return deleteSharedData(req, res, id, mockSession);
+      return deleteSharedData(req, res, id, session);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -103,22 +100,14 @@ async function updateSharedData(
     
     // Get the user's ethereum address from the session
     const ethereumAddress = session.user?.ethereumAddress;
-    const isRevokingAccess = req.body.isActive === false;
-    
-    // Special case: If we're revoking access (setting isActive to false), we'll allow it
-    // without strict ownership checks for testing purposes
-    if (!isRevokingAccess) {
-      // For other operations, enforce normal ownership checks
-      if (!ethereumAddress) {
-        return res.status(400).json({ error: 'No ethereum address associated with this account' });
-      }
-      
-      // Check if the user owns this shared data
-      if (existingData.userId !== ethereumAddress) {
-        return res.status(403).json({ error: 'Not authorized to update this shared data' });
-      }
-    } else {
-      console.log('Allowing revoke access operation without strict ownership check');
+
+    if (!ethereumAddress) {
+      return res.status(400).json({ error: 'No ethereum address associated with this account' });
+    }
+
+    // Check if the user owns this shared data - required for all operations
+    if (existingData.userId !== ethereumAddress) {
+      return res.status(403).json({ error: 'Not authorized to update this shared data' });
     }
     
     // Update the shared data record
@@ -151,24 +140,27 @@ async function deleteSharedData(
   try {
     // Get the user's ethereum address from the session
     const ethereumAddress = session.user?.ethereumAddress;
-    
+
     if (!ethereumAddress) {
       return res.status(400).json({ error: 'No ethereum address associated with this account' });
     }
-    
+
+    // Normalize address for comparison
+    const normalizedAddress = ethereumAddress.toLowerCase();
+
     // Find the shared data record
     const existingData = await prisma.sharedMedicalData.findUnique({
       where: {
         id,
       },
     });
-    
+
     if (!existingData) {
       return res.status(404).json({ error: 'Shared data not found' });
     }
-    
+
     // Check if the user owns this shared data
-    if (existingData.userId !== ethereumAddress) {
+    if (existingData.userId !== normalizedAddress) {
       return res.status(403).json({ error: 'Not authorized to delete this shared data' });
     }
     

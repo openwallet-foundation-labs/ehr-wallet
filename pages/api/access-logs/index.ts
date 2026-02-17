@@ -7,16 +7,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Authentication disabled for development - allow all access
-  console.log('API: Authentication checks disabled for development');
-  
-  // Create a mock session for development
-  const mockSession = {
-    user: {
-      email: 'dev@example.com',
-      ethereumAddress: '0x123456789abcdef123456789abcdef123456789a'
-    }
-  };
+  // Require authentication for all requests
+  const session = await getServerSession(req, res, authOptions);
+
+  if (!session || !session.user?.ethereumAddress) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
   // Only GET method is allowed
   if (req.method !== 'GET') {
@@ -24,12 +20,10 @@ export default async function handler(
   }
 
   try {
-    // Use mock user data for development
+    // Use authenticated user's ethereum address
     const user = {
-      ethereumAddress: mockSession.user.ethereumAddress
+      ethereumAddress: session.user.ethereumAddress
     };
-
-    console.log('Using mock user for development:', user);
 
     console.log(`Fetching access logs for user with ethereum address: ${user.ethereumAddress}`);
     
