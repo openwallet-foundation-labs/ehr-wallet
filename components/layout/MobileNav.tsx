@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { X, Home, Settings } from "lucide-react";
+import { X, Home, Settings, Share, ClipboardList, Wallet, Calendar, Heart } from "lucide-react";
 import { Button, Drawer, Stack, Text, NavLink, Divider, Group, Box } from "@mantine/core";
 import { useSession } from "next-auth/react";
 import { useMetaMask } from "@/components/web3/MetaMaskProvider";
@@ -42,7 +42,10 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   }, [session, isConnected, currentAccount, patientSession]);
 
   const routes = [
-    { href: "/", label: "Home", icon: <Home size={18} /> },
+    { href: "/", label: "Dashboard", icon: <Home size={18} /> },
+    { href: "/patient/share-data", label: "Share Data", icon: <Share size={18} /> },
+    { href: "/patient/access-logs", label: "Access Logs", icon: <ClipboardList size={18} /> },
+    { href: "/patient/wallet", label: "Wallet", icon: <Wallet size={18} /> },
     { href: "/patient/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
 
