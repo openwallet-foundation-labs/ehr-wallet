@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Card, Text, Button, TextInput, Alert, LoadingOverlay } from '@mantine/core';

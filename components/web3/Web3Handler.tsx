@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { getFromIpfs as fetchFromIpfs, decryptData as decryptIpfsData } from '@/lib/web3/ipfs';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { TextInput, Textarea, Button, Select, Card, Group, Stack, Text, Alert, Flex } from '@mantine/core';

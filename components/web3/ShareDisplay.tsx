@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react';
 import { Card, Text, Button, TextInput, Group, Stack, Alert } from '@mantine/core';

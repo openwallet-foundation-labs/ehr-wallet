@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const { keccak256, toUtf8Bytes } = require('ethers');
+import { PrismaClient } from '@prisma/client';
+import { keccak256, toUtf8Bytes } from 'ethers';
 
 // Initialize Prisma client
 const prisma = new PrismaClient();

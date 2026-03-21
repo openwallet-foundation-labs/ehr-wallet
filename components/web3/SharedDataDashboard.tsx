@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any, no-useless-catch */
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';

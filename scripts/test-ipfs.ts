@@ -1,4 +1,4 @@
-const { uploadToIpfs, getFromIpfs, encryptData, decryptData } = require('../lib/web3/ipfs');
+import { uploadToIpfs, getFromIpfs, encryptData, decryptData } from '../lib/web3/ipfs';
 
 async function testIpfs() {
   try {

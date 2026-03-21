@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Helper function to fetch with timeout
@@ -50,10 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   if (accessId && (!cid || Array.isArray(cid))) {
     try {
-      // Import prisma client
-      const { prisma } = require('@/lib/prisma');
-      
-      
       // Look up the shared data record in the database
       const sharedData = await prisma.sharedMedicalData.findFirst({
         where: {
@@ -147,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let response: Response | null = null;
     let gatewayError: string | null = null;
-    let attemptedUrls: string[] = [];
+    const attemptedUrls: string[] = [];
     
     // For CIDs that need special handling, try direct IPFS node access first
     if (needsDirectIpfsAccess) {

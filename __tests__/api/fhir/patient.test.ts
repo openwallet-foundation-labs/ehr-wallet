@@ -1,6 +1,7 @@
 /**
  * Integration tests for FHIR Patient API endpoints
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import patientIndexHandler from '@/pages/api/fhir/Patient/index';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useForm } from "react-hook-form";
 import { Card, Text, Button, Switch, Avatar, Divider, TextInput, Textarea, Title } from "@mantine/core";
