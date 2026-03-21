@@ -32,7 +32,9 @@ export default async function handler(
       take: 10, // Limit to 10 records for debugging
     });
     
+    // Check if any shared data exists (placeholder for future logic)
     if (allSharedData.length > 0) {
+      // Future: Add filtering or processing of shared data
     }
     
     // Get all ethereum addresses associated with this user (for testing purposes)

@@ -114,7 +114,8 @@ export async function hybridWalletLogin(
         }
         return { success: true, nextAuth: true, offline: true };
       }
-    } catch (e) {
+    } catch {
+      // Ignore errors from NextAuth and continue to offline auth
     }
     
     // Fallback to localStorage authentication

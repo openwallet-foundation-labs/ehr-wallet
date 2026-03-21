@@ -9,52 +9,48 @@ import { toast } from 'sonner';
 
 // Fetch shared records from the API
 const fetchSharedRecords = async (address?: string) => {
-  try {
-    const timestamp = new Date().getTime();
-    const url = `/api/shared-data?_t=${timestamp}`;
+  const timestamp = new Date().getTime();
+  const url = `/api/shared-data?_t=${timestamp}`;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-    if (address) {
-      headers['x-wallet-address'] = address;
-    }
-
-    const response = await fetch(url, {
-      cache: 'no-store',
-      credentials: 'include',
-      headers,
-      next: { revalidate: 0 },
-      signal: AbortSignal.timeout(30000)
-    });
-
-    if (!response.ok) {
-      let errorMessage = 'Failed to fetch shared data';
-      try {
-        const errorData = await response.json();
-        if (errorData?.error) {
-          errorMessage = errorData.error;
-        }
-      } catch {
-        // Use default message
-      }
-
-      if (response.status === 401) {
-        throw new Error('Authentication required. Please connect your wallet.');
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return data.map((record: any) => ({
-      ...record,
-      createdAt: new Date(record.createdAt),
-      expiryTime: new Date(record.expiryTime)
-    }));
-  } catch (error) {
-    throw error;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  if (address) {
+    headers['x-wallet-address'] = address;
   }
+
+  const response = await fetch(url, {
+    cache: 'no-store',
+    credentials: 'include',
+    headers,
+    next: { revalidate: 0 },
+    signal: AbortSignal.timeout(30000)
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to fetch shared data';
+    try {
+      const errorData = await response.json();
+      if (errorData?.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // Use default message
+    }
+
+    if (response.status === 401) {
+      throw new Error('Authentication required. Please connect your wallet.');
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  return data.map((record: any) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    expiryTime: new Date(record.expiryTime)
+  }));
 };
 
 interface SharedDataDashboardProps {

@@ -55,7 +55,9 @@ async function getSharedData(
       },
     });
 
+    // Check if records exist (placeholder for future logic)
     if (allRecords.length > 0) {
+      // Future: Add additional processing or filtering
     }
 
     // If all=true parameter is provided, return all records
