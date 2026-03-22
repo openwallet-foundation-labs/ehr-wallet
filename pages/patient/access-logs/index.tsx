@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, Table, Badge, Button, Alert, Group, Text, LoadingOverlay, Title } from '@mantine/core';

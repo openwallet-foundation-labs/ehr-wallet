@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { getFromIpfs as fetchFromIpfs, decryptData as decryptIpfsData } from '@/lib/web3/ipfs';
@@ -18,6 +18,7 @@ interface Web3ContextType {
 
 const Web3Context = createContext<Web3ContextType | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWeb3 = () => {
   const context = useContext(Web3Context);
   if (!context) {

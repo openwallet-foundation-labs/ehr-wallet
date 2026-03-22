@@ -75,12 +75,14 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     if (propLoading !== undefined) {
       setLoading(propLoading);
     }
+     
   }, [propAppointments, propLoading]);
 
   useEffect(() => {
     if (!propAppointments) {
       loadAppointments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 
   const loadAppointments = async () => {

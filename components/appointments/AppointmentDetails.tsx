@@ -94,6 +94,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
   useEffect(() => {
     loadAppointmentDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
 
   const loadAppointmentDetails = async () => {

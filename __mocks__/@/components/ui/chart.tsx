@@ -1,5 +1,5 @@
 // __mocks__/@/components/ui/chart.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import React from 'react';
 
 export const BarChart: React.FC<any> = ({ data }) => <div data-testid="mock-bar-chart">{JSON.stringify(data)}</div>;

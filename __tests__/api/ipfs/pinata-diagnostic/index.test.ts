@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { NextApiRequest, NextApiResponse } from 'next';
 import handler from '../../../../pages/api/ipfs/pinata-diagnostic/index';
 

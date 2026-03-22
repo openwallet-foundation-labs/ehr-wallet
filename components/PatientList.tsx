@@ -217,7 +217,7 @@ const PatientList = () => {
                         <Popover.Dropdown>
                           <DatePickerInput
                             value={fromDate}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             
                             onChange={setFromDate as any}
                             placeholder="Select date"
                             size="xs"
@@ -243,7 +243,7 @@ const PatientList = () => {
                         <Popover.Dropdown>
                           <DatePickerInput
                             value={toDate}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             
                             onChange={setToDate as any}
                             placeholder="Select date"
                             size="xs"

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { getCurrentUser } from "@/lib/offline-auth";

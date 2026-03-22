@@ -1,5 +1,5 @@
 // Global type definitions for the application
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 interface Window {
   ethereum?: {

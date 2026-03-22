@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 import React, { useState, useEffect } from 'react';
 import { Plus, List, Filter, Search, Calendar } from 'lucide-react';

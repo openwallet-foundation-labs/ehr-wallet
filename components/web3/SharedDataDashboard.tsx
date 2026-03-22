@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-explicit-any, no-useless-catch */
+ 
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -121,6 +121,7 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ethereumAddress]);
 
 

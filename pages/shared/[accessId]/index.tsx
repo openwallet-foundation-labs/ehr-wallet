@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Card, Text, Button, TextInput, Alert, LoadingOverlay } from '@mantine/core';
@@ -294,6 +294,7 @@ export default function SharedDataPage() {
 }
 
 // Disable static generation for this page since it requires client-side Web3 context
+// eslint-disable-next-line react-refresh/only-export-components
 export async function getServerSideProps() {
   return {
     props: {},

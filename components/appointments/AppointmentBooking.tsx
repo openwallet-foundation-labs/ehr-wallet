@@ -71,6 +71,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
       setAvailableSlots([]);
       setSelectedTimeSlot('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProvider, selectedDate]);
 
   const loadInitialData = async () => {
@@ -258,7 +259,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               <DatePickerInput
                 type="default"
                 value={selectedDate}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 onChange={setSelectedDate as any}
                 minDate={new Date()}
                 maxDate={addDays(new Date(), 90)}
