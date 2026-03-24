@@ -4,6 +4,33 @@
 import { CID } from 'multiformats/cid';
 import { base58btc } from 'multiformats/bases/base58';
 
+// List of allowed IPFS gateways to prevent SSRF
+const ALLOWED_IPFS_GATEWAYS = [
+  'https://gateway.pinata.cloud/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://dweb.link/ipfs',
+  'https://cloudflare-ipfs.com/ipfs',
+];
+
+/**
+ * Validate that a string is a valid IPFS CID
+ */
+function isValidCID(cidString: string): boolean {
+  try {
+    CID.parse(cidString);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate that a URL is from an allowed IPFS gateway
+ */
+function isAllowedGateway(url: string): boolean {
+  return ALLOWED_IPFS_GATEWAYS.some(gateway => url.startsWith(gateway));
+}
+
 // Create a Helia instance
 let heliaInstance: any = null;
 
@@ -157,8 +184,11 @@ export const getFromIpfs = async (cidString: string): Promise<any> => {
       const gatewayUrl = getIpfsGatewayUrl(cidString);
       
       try {
+        if (!isAllowedGateway(gatewayUrl)) {
+          throw new Error(`Invalid gateway URL: ${gatewayUrl}`);
+        }
         const response = await fetch(gatewayUrl);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -177,8 +207,11 @@ export const getFromIpfs = async (cidString: string): Promise<any> => {
         const pinataUrl = `${pinataGatewayUrl}/${cidString}`;
         
         try {
+          if (!isAllowedGateway(pinataUrl)) {
+            throw new Error(`Invalid gateway URL: ${pinataUrl}`);
+          }
           const pinataResponse = await fetch(pinataUrl);
-          
+
           if (pinataResponse.ok) {
             const pinataContent = await pinataResponse.json();
             console.log('Successfully retrieved from Pinata gateway');
@@ -191,7 +224,11 @@ export const getFromIpfs = async (cidString: string): Promise<any> => {
         // Fall back to default gateway
         const directGatewayUrl = process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL || 'https://ipfs.io/ipfs';
         const directUrl = `${directGatewayUrl}/${cidString}`;
-        
+
+        if (!isAllowedGateway(directUrl)) {
+          throw new Error(`Invalid gateway URL: ${directUrl}`);
+        }
+
         const directResponse = await fetch(directUrl);
         
         if (!directResponse.ok) {
@@ -241,7 +278,9 @@ export const checkIpfsAvailability = async (): Promise<boolean> => {
     
     // Try to access a public gateway as fallback
     try {
-      const response = await fetch('https://ipfs.io/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/readme');
+      const knownValidCid = 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG';
+      const gatewayUrl = `https://ipfs.io/ipfs/${knownValidCid}/readme`;
+      const response = await fetch(gatewayUrl);
       return response.ok;
     } catch (gatewayError) {
       console.error('IPFS gateway not available:', gatewayError);

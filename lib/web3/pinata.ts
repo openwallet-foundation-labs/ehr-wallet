@@ -4,6 +4,14 @@ import axios from 'axios';
 import FormData from 'form-data';
 
 /**
+ * Validate that a string is a valid IPFS CID
+ */
+function isValidCID(cid: string): boolean {
+  // Basic validation: CIDs start with 'Qm' (v0) or 'b' (v1)
+  return /^Qm[a-zA-Z0-9]{44}$/.test(cid) || /^b[a-zA-Z0-9]{58}$/.test(cid);
+}
+
+/**
  * Pinata IPFS service for uploading, pinning, and retrieving content
  */
 export class PinataService {
@@ -147,6 +155,11 @@ export class PinataService {
    */
   public async getContent(cid: string): Promise<any> {
     try {
+      // Validate CID to prevent SSRF
+      if (!isValidCID(cid)) {
+        throw new Error('Invalid IPFS CID');
+      }
+
       // First try to get directly from Pinata gateway
       const response = await axios.get(`${this.gatewayUrl}/${cid}`);
       return response.data;
@@ -200,6 +213,10 @@ export class PinataService {
       if (!this.isConfigured()) {
         throw new Error('Pinata credentials not configured');
       }
+
+      if (!isValidCID(cid)) {
+        throw new Error('Invalid IPFS CID');
+      }
       
       const config = {
         method: 'get',
@@ -224,6 +241,10 @@ export class PinataService {
     try {
       if (!this.isConfigured()) {
         throw new Error('Pinata credentials not configured');
+      }
+
+      if (!isValidCID(cid)) {
+        throw new Error('Invalid IPFS CID');
       }
       
       const config = {
@@ -291,6 +312,10 @@ export class PinataService {
     try {
       if (!this.isConfigured()) {
         throw new Error('Pinata credentials not configured');
+      }
+
+      if (!isValidCID(cid)) {
+        throw new Error('Invalid IPFS CID');
       }
       
       // First try to get the pin details

@@ -1,5 +1,28 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
+// List of allowed IPFS gateways to prevent SSRF
+const ALLOWED_IPFS_GATEWAYS = [
+  'https://gateway.pinata.cloud/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://dweb.link/ipfs',
+  'https://cloudflare-ipfs.com/ipfs',
+];
+
+/**
+ * Validate that a URL is from an allowed IPFS gateway
+ */
+function isAllowedGateway(url: string): boolean {
+  return ALLOWED_IPFS_GATEWAYS.some(gateway => url.startsWith(gateway));
+}
+
+/**
+ * Validate that a string is a valid IPFS CID
+ */
+function isValidCID(cid: string): boolean {
+  // Basic validation: CIDs start with 'Qm' (v0) or 'b' (v1)
+  return /^Qm[a-zA-Z0-9]{44}$/.test(cid) || /^b[a-zA-Z0-9]{58}$/.test(cid);
+}
+
 /**
  * Helper function to fetch with timeout
  */
@@ -32,7 +55,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!cid || Array.isArray(cid)) {
     return res.status(400).json({ error: 'Missing IPFS CID parameter' });
   }
-  
+
+  const cidString = Array.isArray(cid) ? cid[0] : cid;
+
+  // Validate the CID to prevent SSRF
+  if (!isValidCID(cidString)) {
+    return res.status(400).json({ error: 'Invalid IPFS CID format' });
+  }
+
   try {
     const results: any = {
       status: 'success',
