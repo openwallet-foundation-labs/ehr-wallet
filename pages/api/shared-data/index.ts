@@ -14,19 +14,25 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Require authentication for all requests
+  // Accept authentication via either NextAuth session OR wallet address header
   const session = await getServerSession(req, res, authOptions);
 
-  if (!session || !session.user?.ethereumAddress) {
-    return res.status(401).json({ error: 'Authentication required' });
+  // Get wallet address from header (sent by Web3 clients)
+  const walletAddress = req.headers['x-wallet-address'] as string | undefined;
+
+  // Accept either session or wallet
+  const ethereumAddress = session?.user?.ethereumAddress || walletAddress?.toLowerCase();
+
+  if (!ethereumAddress) {
+    return res.status(401).json({ error: 'Authentication required. Please login or connect wallet.' });
   }
 
   // Handle different HTTP methods
   switch (req.method) {
     case 'GET':
-      return getSharedData(req, res, session);
+      return getSharedData(req, res, ethereumAddress);
     case 'POST':
-      return createSharedData(req, res, session);
+      return createSharedData(req, res, ethereumAddress);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -36,43 +42,32 @@ export default async function handler(
 async function getSharedData(
   req: NextApiRequest,
   res: NextApiResponse,
-  session: any
+  ethereumAddress: string
 ) {
   try {
     // Check if we should return all records (for access logs page)
     const returnAllRecords = req.query.all === 'true';
-    
+
     // For debugging, get all shared data records
     const allRecords = await prisma.sharedMedicalData.findMany({
       orderBy: {
         createdAt: 'desc',
       },
     });
-    
-    console.log(`Total shared data records in database: ${allRecords.length}`);
+
     if (allRecords.length > 0) {
-      console.log('Sample record:', JSON.stringify(allRecords[0]));
     }
-    
+
     // If all=true parameter is provided, return all records
     if (returnAllRecords) {
-      console.log('Returning all shared data records for access logs');
       return res.status(200).json(allRecords);
     }
-    
+
     // Otherwise, get user-specific records
-    // Only allow access to the authenticated user's own records
-    const ethereumAddress = session.user?.ethereumAddress;
-
-    if (!ethereumAddress) {
-      return res.status(400).json({ error: 'No ethereum address associated with this account' });
-    }
-
     // Normalize the ethereum address to lowercase for consistency
     const normalizedAddress = ethereumAddress.toLowerCase();
-    
-    console.log(`Fetching shared data for address: ${normalizedAddress}`);
-    
+
+
     // Query the database for shared data records for the authenticated user only
     const sharedData = await prisma.sharedMedicalData.findMany({
       where: {
@@ -82,9 +77,8 @@ async function getSharedData(
         createdAt: 'desc',
       },
     });
-    
-    console.log(`Found ${sharedData.length} records for address ${normalizedAddress}`);
-    
+
+
     return res.status(200).json(sharedData);
   } catch (error) {
     console.error('Error fetching shared data:', error);
@@ -96,34 +90,26 @@ async function getSharedData(
 async function createSharedData(
   req: NextApiRequest,
   res: NextApiResponse,
-  session: any
+  ethereumAddress: string
 ) {
   try {
-    const { 
-      accessId, 
-      ipfsCid, 
-      expiryTime, 
-      hasPassword, 
-      dataTypes 
+    const {
+      accessId,
+      ipfsCid,
+      expiryTime,
+      hasPassword,
+      dataTypes
     } = req.body;
-    
-    console.log('Creating shared data record with:', { accessId, ipfsCid, expiryTime, hasPassword });
-    
+
+
     // Validate required fields
     if (!accessId || !ipfsCid || !expiryTime) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
-    // Get the user's ethereum address from the session
-    const ethereumAddress = session.user?.ethereumAddress;
-
-    if (!ethereumAddress) {
-      return res.status(400).json({ error: 'No ethereum address associated with this account' });
-    }
 
     // Normalize the address to lowercase
     const normalizedAddress = ethereumAddress.toLowerCase();
-    
+
     // Create the shared data record
     const sharedData = await prisma.sharedMedicalData.create({
       data: {
@@ -137,9 +123,8 @@ async function createSharedData(
         isActive: true,
       },
     });
-    
-    console.log('Successfully created shared data record:', sharedData.id);
-    
+
+
     return res.status(201).json(sharedData);
   } catch (error) {
     console.error('Error creating shared data:', error);

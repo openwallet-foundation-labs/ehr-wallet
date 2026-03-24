@@ -3,22 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays, isSameDay, isAfter, isBefore, startOfDay } from 'date-fns';
 import { Calendar, Clock, User, CheckCircle, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Paper, Title, Text } from '@mantine/core';
+import { Button } from '@mantine/core';
+import { TextInput } from '@mantine/core';
+import { Textarea } from '@mantine/core';
+import { Select } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
+import { Popover } from '@mantine/core';
+import { Badge } from '@mantine/core';
+import { Alert } from '@mantine/core';
+import { Skeleton } from '@mantine/core';
 import { toast } from 'sonner';
 import { ProviderType, AppointmentTypeType, TimeSlotType } from '@/lib/db';
-import { 
-  getAllProviders, 
-  getAllAppointmentTypes, 
+import {
+  getAllProviders,
+  getAllAppointmentTypes,
   getAllTimeSlots,
   createAppointment,
   updateTimeSlot
@@ -48,15 +47,15 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   const [timeSlots, setTimeSlots] = useState<TimeSlotType[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Form state
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [reason, setReason] = useState('');
-  
+
   // Available slots for selected date and provider
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -99,11 +98,11 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
     try {
       setLoadingSlots(true);
-      
+
       // Filter time slots for the selected provider and date
       const providerSlots = timeSlots.filter(slot => {
         const slotDate = new Date(slot.startTime);
-        return slot.providerId === selectedProvider && 
+        return slot.providerId === selectedProvider &&
                isSameDay(slotDate, selectedDate) &&
                slot.isAvailable &&
                isAfter(slotDate, new Date()); // Only future slots
@@ -132,7 +131,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedProvider || !selectedAppointmentType || !selectedTimeSlot || !selectedDate) {
       toast.error('Please fill in all required fields');
       return;
@@ -166,7 +165,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
       toast.success('Appointment booked successfully!');
       onBookingComplete?.(newAppointment.id);
-      
+
       // Reset form
       resetForm();
     } catch (error) {
@@ -180,7 +179,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   const resetForm = () => {
     setSelectedProvider('');
     setSelectedAppointmentType('');
-    setSelectedDate(undefined);
+    setSelectedDate(null);
     setSelectedTimeSlot('');
     setNotes('');
     setReason('');
@@ -191,202 +190,166 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Book New Appointment</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <Paper p="md" withBorder>
+        <Title order={5} mb="md">Book New Appointment</Title>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <Skeleton height={16} width={96} />
+              <Skeleton height={40} width="100%" />
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </Paper>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Book New Appointment
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Provider Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="provider">Healthcare Provider *</Label>
-            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a provider" />
-              </SelectTrigger>
-              <SelectContent>
-                {providers.map(provider => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{provider.name}</span>
-                      <span className="text-sm text-gray-500">{provider.specialty}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <Paper p="md" withBorder>
+      <Title order={5} mb="md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Calendar size={20} />
+        Book New Appointment
+      </Title>
 
-          {/* Appointment Type Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="appointmentType">Appointment Type *</Label>
-            <Select value={selectedAppointmentType} onValueChange={setSelectedAppointmentType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select appointment type" />
-              </SelectTrigger>
-              <SelectContent>
-                {appointmentTypes.map(type => (
-                  <SelectItem key={type.id} value={type.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{type.name}</span>
-                      <span className="text-sm text-gray-500">
-                        {type.duration} minutes
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Provider Selection */}
+        <Select
+          label="Healthcare Provider *"
+          placeholder="Select a provider"
+          value={selectedProvider}
+          onChange={(value) => setSelectedProvider(value || '')}
+          data={providers.map(provider => ({
+            value: provider.id,
+            label: provider.name,
+            description: provider.specialty
+          }))}
+          required
+        />
 
-          {/* Date Selection */}
-          <div className="space-y-2">
-            <Label>Preferred Date *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => 
-                    isBefore(date, startOfDay(new Date())) || 
-                    isAfter(date, addDays(new Date(), 90))
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        {/* Appointment Type Selection */}
+        <Select
+          label="Appointment Type *"
+          placeholder="Select appointment type"
+          value={selectedAppointmentType}
+          onChange={(value) => setSelectedAppointmentType(value || '')}
+          data={appointmentTypes.map(type => ({
+            value: type.id,
+            label: type.name,
+            description: `${type.duration} minutes`
+          }))}
+          required
+        />
 
-          {/* Time Slot Selection */}
-          {selectedProvider && selectedDate && (
-            <div className="space-y-2">
-              <Label>Available Time Slots *</Label>
-              {loadingSlots ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-10" />
-                  ))}
-                </div>
-              ) : availableSlots.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {availableSlots.map(slot => (
-                    <Button
-                      key={slot.id}
-                      type="button"
-                      variant={selectedTimeSlot === slot.id ? 'default' : 'outline'}
-                      className="h-auto p-3 flex flex-col items-center"
-                      onClick={() => setSelectedTimeSlot(slot.id)}
-                    >
-                      <Clock className="h-4 w-4 mb-1" />
-                      <span className="text-sm font-medium">
-                        {format(slot.startTime, 'h:mm a')}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {format(slot.endTime, 'h:mm a')}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No available time slots for the selected date and provider.
-                    Please try a different date.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {/* Reason for Visit */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason for Visit</Label>
-            <Input
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Brief description of your visit reason"
-            />
-          </div>
-
-          {/* Additional Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional information or special requests"
-              rows={3}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={!isFormValid || submitting}
-              className="flex-1"
-            >
-              {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Booking...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Book Appointment
-                </>
-              )}
-            </Button>
-            
-            {onCancel && (
+        {/* Date Selection */}
+        <div>
+          <Text size="sm" fw={500} mb={4}>Preferred Date *</Text>
+          <Popover position="bottom-start" withArrow>
+            <Popover.Target>
               <Button
-                type="button"
                 variant="outline"
-                onClick={onCancel}
-                disabled={submitting}
-                className="flex-1 sm:flex-none"
+                fullWidth
+                style={{ justifyContent: 'flex-start' }}
+                leftSection={<Calendar size={16} />}
               >
-                Cancel
+                {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
               </Button>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <DatePickerInput
+                type="default"
+                value={selectedDate}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChange={setSelectedDate as any}
+                minDate={new Date()}
+                maxDate={addDays(new Date(), 90)}
+                placeholder="Select date"
+              />
+            </Popover.Dropdown>
+          </Popover>
+        </div>
+
+        {/* Time Slot Selection */}
+        {selectedProvider && selectedDate && (
+          <div>
+            <Text size="sm" fw={500} mb={4}>Available Time Slots *</Text>
+            {loadingSlots ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} height={40} />
+                ))}
+              </div>
+            ) : availableSlots.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
+                {availableSlots.map(slot => (
+                  <Button
+                    key={slot.id}
+                    type="button"
+                    variant={selectedTimeSlot === slot.id ? 'filled' : 'outline'}
+                    style={{ display: 'flex', flexDirection: 'column', padding: '12px', height: 'auto' }}
+                    onClick={() => setSelectedTimeSlot(slot.id)}
+                  >
+                    <Clock size={16} style={{ marginBottom: '4px' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                      {format(slot.startTime, 'h:mm a')}
+                    </span>
+                    <span style={{ fontSize: '12px', color: selectedTimeSlot === slot.id ? 'white' : '#6b7280' }}>
+                      {format(slot.endTime, 'h:mm a')}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <Alert color="yellow" icon={<AlertCircle size={16} />}>
+                No available time slots for the selected date and provider.
+                Please try a different date.
+              </Alert>
             )}
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        )}
+
+        {/* Reason for Visit */}
+        <TextInput
+          label="Reason for Visit"
+          placeholder="Brief description of your visit reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+
+        {/* Additional Notes */}
+        <Textarea
+          label="Additional Notes"
+          placeholder="Any additional information or special requests"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          minRows={3}
+        />
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', paddingTop: '16px' }}>
+          <Button
+            type="submit"
+            disabled={!isFormValid || submitting}
+            style={{ flex: 1 }}
+            leftSection={!submitting ? <CheckCircle size={16} /> : undefined}
+            loading={submitting}
+          >
+            {submitting ? 'Booking...' : 'Book Appointment'}
+          </Button>
+
+          {onCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={submitting}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+    </Paper>
   );
 };
 

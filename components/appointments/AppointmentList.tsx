@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar, Clock, User, Phone, MapPin } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-
-import { Skeleton } from '@/components/ui/skeleton';
+import { Paper, Text } from '@mantine/core';
+import { Badge } from '@mantine/core';
+import { Button } from '@mantine/core';
+import { Skeleton } from '@mantine/core';
 import { AppointmentType, ProviderType, AppointmentTypeType } from '@/lib/db';
 import { getAllAppointments, getAllProviders, getAllAppointmentTypes } from '@/lib/db-utils';
 
@@ -28,17 +27,17 @@ interface AppointmentListProps {
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case 'scheduled':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' };
     case 'confirmed':
-      return 'bg-green-100 text-green-800 border-green-200';
+      return { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' };
     case 'cancelled':
-      return 'bg-red-100 text-red-800 border-red-200';
+      return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca' };
     case 'completed':
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return { bg: '#f3f4f6', text: '#1f2937', border: '#e5e7eb' };
     case 'no_show':
-      return 'bg-orange-100 text-orange-800 border-orange-200';
+      return { bg: '#ffedd5', text: '#9a3412', border: '#fed7aa' };
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return { bg: '#f3f4f6', text: '#1f2937', border: '#e5e7eb' };
   }
 };
 
@@ -61,31 +60,28 @@ const getStatusText = (status: string) => {
 
 const AppointmentList: React.FC<AppointmentListProps> = ({
   patientId,
+  appointments: propAppointments,
+  loading: propLoading,
   onAppointmentSelect,
   showActions = true
 }) => {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
-    loadAppointments();
-  }, [patientId]);
-
-  // Debug logging to check appointment data
-  useEffect(() => {
-    console.log('AppointmentList - appointments:', appointments);
-    console.log('AppointmentList - appointments length:', appointments.length);
-    if (appointments.length > 0) {
-      console.log('AppointmentList - first appointment:', appointments[0]);
-      console.log('AppointmentList - first appointment startTime:', appointments[0].startTime);
-      console.log('AppointmentList - first appointment startTime type:', typeof appointments[0].startTime);
-      console.log('AppointmentList - startTime toString:', appointments[0].startTime?.toString());
-      console.log('AppointmentList - startTime valueOf:', appointments[0].startTime?.valueOf());
-      console.log('AppointmentList - new Date(startTime):', new Date(appointments[0].startTime));
-      console.log('AppointmentList - isNaN check:', isNaN(new Date(appointments[0].startTime).getTime()));
+    if (propAppointments !== undefined) {
+      setAppointments(propAppointments);
     }
-  }, [appointments]);
+    if (propLoading !== undefined) {
+      setLoading(propLoading);
+    }
+  }, [propAppointments, propLoading]);
+
+  useEffect(() => {
+    if (!propAppointments) {
+      loadAppointments();
+    }
+  }, [patientId]);
 
   const loadAppointments = async () => {
     try {
@@ -114,129 +110,130 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       });
 
       // Sort by date (newest first)
-      enrichedAppointments.sort((a, b) => 
+      enrichedAppointments.sort((a, b) =>
         new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
       );
 
       setAppointments(enrichedAppointments);
-    } catch (error) {
-      console.error('Error loading appointments:', error);
+    } catch {
+      // Ignore errors - component will show empty state
     } finally {
       setLoading(false);
     }
   };
 
-
-
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Skeleton className="h-10 flex-1" />
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+          <Skeleton height={40} style={{ flex: 1 }} />
+          <Skeleton height={40} width={128} />
+          <Skeleton height={40} width={128} />
+          <Skeleton height={40} width={128} />
         </div>
         {[...Array(3)].map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            </CardContent>
-          </Card>
+          <Paper key={i} p="md" withBorder>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Skeleton height={16} width="75%" />
+              <Skeleton height={16} width="50%" />
+              <Skeleton height={16} width="66%" />
+            </div>
+          </Paper>
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
       {/* Appointments List */}
       {appointments.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No appointments found
-            </h3>
-            <p className="text-gray-500">
-              You don't have any appointments yet.
-            </p>
-          </CardContent>
-        </Card>
+        <Paper p="xl" withBorder style={{ textAlign: 'center' }}>
+          <Calendar size={48} style={{ margin: '0 auto 16px', color: '#9ca3af' }} />
+          <Text size="lg" fw={500} mb={8}>
+            No appointments found
+          </Text>
+          <Text c="dimmed">
+            You don't have any appointments yet.
+          </Text>
+        </Paper>
       ) : (
-        <div className="space-y-4">
-          {appointments.map((appointment) => (
-            <Card 
-              key={appointment.id} 
-              className={`transition-all duration-200 hover:shadow-md ${
-                onAppointmentSelect ? 'cursor-pointer hover:bg-gray-50' : ''
-              }`}
-              onClick={() => onAppointmentSelect?.(appointment)}
-            >
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-lg">
-                        {appointment.appointmentType?.name || 'Appointment'}
-                      </h3>
-                      <Badge className={getStatusColor(appointment.status)}>
-                        {getStatusText(appointment.status)}
-                      </Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {appointments.map((appointment) => {
+            const statusStyles = getStatusColor(appointment.status);
+            return (
+              <Paper
+                key={appointment.id}
+                p="md"
+                withBorder
+                style={{
+                  transition: 'all 200ms',
+                  cursor: onAppointmentSelect ? 'pointer' : 'default',
+                }}
+                onClick={() => onAppointmentSelect?.(appointment)}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <Text fw={600} size="lg">
+                      {appointment.appointmentType?.name || 'Appointment'}
+                    </Text>
+                    <Badge
+                      style={{
+                        backgroundColor: statusStyles.bg,
+                        color: statusStyles.text,
+                        borderColor: statusStyles.border,
+                      }}
+                    >
+                      {getStatusText(appointment.status)}
+                    </Badge>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', fontSize: '14px', color: '#4b5563' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <User size={16} />
+                      <span>{appointment.provider?.name || 'Unknown Provider'}</span>
                     </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>{appointment.provider?.name || 'Unknown Provider'}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {appointment.startTime && !isNaN(new Date(appointment.startTime).getTime()) 
-                            ? format(new Date(appointment.startTime), 'MMM dd, yyyy')
-                            : 'Invalid Date'
-                          }
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          {appointment.startTime && !isNaN(new Date(appointment.startTime).getTime()) && 
-                           appointment.endTime && !isNaN(new Date(appointment.endTime).getTime())
-                            ? `${format(new Date(appointment.startTime), 'h:mm a')} - ${format(new Date(appointment.endTime), 'h:mm a')}`
-                            : 'Invalid Time'
-                          }
-                        </span>
-                      </div>
-                      
-                      {appointment.provider?.phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>{appointment.provider.phone}</span>
-                        </div>
-                      )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={16} />
+                      <span>
+                        {appointment.startTime && !isNaN(new Date(appointment.startTime).getTime())
+                          ? format(new Date(appointment.startTime), 'MMM dd, yyyy')
+                          : 'Invalid Date'
+                        }
+                      </span>
                     </div>
-                    
-                    {appointment.notes && (
-                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-                        {appointment.notes}
-                      </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={16} />
+                      <span>
+                        {appointment.startTime && !isNaN(new Date(appointment.startTime).getTime()) &&
+                          appointment.endTime && !isNaN(new Date(appointment.endTime).getTime())
+                          ? `${format(new Date(appointment.startTime), 'h:mm a')} - ${format(new Date(appointment.endTime), 'h:mm a')}`
+                          : 'Invalid Time'
+                        }
+                      </span>
+                    </div>
+
+                    {appointment.provider?.phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Phone size={16} />
+                        <span>{appointment.provider.phone}</span>
+                      </div>
                     )}
                   </div>
-                  
+
+                  {appointment.notes && (
+                    <Text size="sm" c="dimmed" style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '6px' }}>
+                      {appointment.notes}
+                    </Text>
+                  )}
+
                   {showActions && (
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button 
-                        variant="outline" 
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -246,8 +243,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                         View Details
                       </Button>
                       {appointment.status === 'SCHEDULED' && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -260,9 +257,9 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </Paper>
+            );
+          })}
         </div>
       )}
     </div>

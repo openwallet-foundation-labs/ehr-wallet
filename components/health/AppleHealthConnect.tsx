@@ -1,9 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button, Card, Text, Badge, Alert, Group, Stack, ThemeIcon } from '@mantine/core';
 import { AppleIcon } from '@/components/icons/AppleIcon';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 
 interface AppleHealthConnectProps {
   onConnect?: (success: boolean) => void;
@@ -22,10 +21,10 @@ export default function AppleHealthConnect({ onConnect }: AppleHealthConnectProp
     try {
       // In a real implementation, this would use the Apple HealthKit API
       // This is a mock implementation for demonstration purposes
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Simulate successful connection
       setIsConnected(true);
       if (onConnect) onConnect(true);
@@ -52,81 +51,84 @@ export default function AppleHealthConnect({ onConnect }: AppleHealthConnectProp
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl flex items-center">
-              <AppleIcon className="mr-2 h-5 w-5" />
-              Apple Health
-            </CardTitle>
-            <CardDescription>
-              Connect your Apple Health data to share health metrics with your healthcare provider
-            </CardDescription>
-          </div>
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card.Section withBorder inheritPadding py="xs">
+        <Group justify="space-between">
+          <Group gap="xs">
+            <ThemeIcon variant="light" color="red" size="lg">
+              <AppleIcon size={20} />
+            </ThemeIcon>
+            <Text size="lg" fw={600}>Apple Health</Text>
+          </Group>
           {isConnected && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" color="green">
               Connected
             </Badge>
           )}
-        </div>
-      </CardHeader>
-      <CardContent>
+        </Group>
+        <Text size="sm" c="dimmed" mt="xs">
+          Connect your Apple Health data to share health metrics with your healthcare provider
+        </Text>
+      </Card.Section>
+
+      <Card.Section withBorder inheritPadding py="md">
         {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+          <Alert color="red" title="Error" mb="md">
+            {error}
           </Alert>
         )}
-        
-        <div className="space-y-4">
+
+        <Stack gap="md">
           {!isConnected ? (
             <div>
-              <p className="mb-4 text-sm text-muted-foreground">
+              <Text size="sm" c="dimmed" mb="md">
                 Connect to Apple Health to share your health data securely with your healthcare providers.
                 This allows them to monitor your health metrics and provide better care.
-              </p>
-              <Button 
-                onClick={handleConnect} 
-                disabled={isConnecting}
-                className="w-full sm:w-auto"
+              </Text>
+              <Button
+                onClick={handleConnect}
+                loading={isConnecting}
+                variant="filled"
+                color="red"
               >
-                <AppleIcon className="mr-2 h-4 w-4" />
+                <AppleIcon size={16} style={{ marginRight: 8 }} />
                 {isConnecting ? 'Connecting...' : 'Connect to Apple Health'}
               </Button>
             </div>
           ) : (
             <div>
-              <div className="mb-4 grid grid-cols-2 gap-4">
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="text-sm font-medium">Steps</div>
-                  <div className="text-2xl font-semibold">8,742</div>
-                </div>
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="text-sm font-medium">Heart Rate</div>
-                  <div className="text-2xl font-semibold">72 bpm</div>
-                </div>
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="text-sm font-medium">Sleep</div>
-                  <div className="text-2xl font-semibold">7.5 hrs</div>
-                </div>
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="text-sm font-medium">Blood Pressure</div>
-                  <div className="text-2xl font-semibold">120/80</div>
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
+              <Group grow mb="md">
+                <Card withBorder padding="sm" radius="md">
+                  <Text size="xs" c="dimmed">Steps</Text>
+                  <Text size="xl" fw={700}>8,742</Text>
+                </Card>
+                <Card withBorder padding="sm" radius="md">
+                  <Text size="xs" c="dimmed">Heart Rate</Text>
+                  <Text size="xl" fw={700}>72 bpm</Text>
+                </Card>
+              </Group>
+              <Group grow mb="md">
+                <Card withBorder padding="sm" radius="md">
+                  <Text size="xs" c="dimmed">Sleep</Text>
+                  <Text size="xl" fw={700}>7.5 hrs</Text>
+                </Card>
+                <Card withBorder padding="sm" radius="md">
+                  <Text size="xs" c="dimmed">Blood Pressure</Text>
+                  <Text size="xl" fw={700}>120/80</Text>
+                </Card>
+              </Group>
+              <Button
+                variant="outline"
+                color="red"
                 onClick={handleDisconnect}
-                disabled={isConnecting}
-                className="w-full sm:w-auto"
+                loading={isConnecting}
               >
                 {isConnecting ? 'Disconnecting...' : 'Disconnect'}
               </Button>
             </div>
           )}
-        </div>
-      </CardContent>
+        </Stack>
+      </Card.Section>
     </Card>
   );
 }

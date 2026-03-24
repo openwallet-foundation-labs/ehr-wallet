@@ -1,16 +1,14 @@
+'use client';
+
 import { useState } from 'react';
 import { PinataUploader } from '@/components/web3/PinataUploader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardSection, Text, Title, TextInput, Button, Tabs, Alert } from '@mantine/core';
 import { AlertCircle, CheckCircle, Search, Loader2 } from 'lucide-react';
 import Head from 'next/head';
 
 // Simple inline spinner component since we don't have access to the UI spinner
 const Spinner = ({ className }: { className?: string }) => (
-  <Loader2 className={`animate-spin ${className || ''}`} />
+  <Loader2 className={`animate-spin ${className || ''}`} style={{ animation: 'spin 1s linear infinite' }} />
 );
 
 export default function IpfsTestPage() {
@@ -33,9 +31,9 @@ export default function IpfsTestPage() {
       // Call the diagnostic endpoint
       const response = await fetch(`/api/ipfs/pinata-diagnostic?cid=${encodeURIComponent(cid.trim())}`);
       const data = await response.json();
-      
+
       setResult(data);
-      
+
       if (data.status === 'error') {
         setError(data.message || 'An error occurred during the diagnostic check');
       }
@@ -60,11 +58,11 @@ export default function IpfsTestPage() {
     try {
       // Call the IPFS API endpoint
       const response = await fetch(`/api/ipfs?cid=${encodeURIComponent(cid.trim())}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // Try to parse as JSON first
       try {
         const jsonData = await response.json();
@@ -99,119 +97,111 @@ export default function IpfsTestPage() {
         <meta name="description" content="Test IPFS and Pinata integration" />
         <meta name="mobile-web-app-capable" content="yes" />
       </Head>
-      
+
       <div className="container mx-auto py-8 space-y-8">
-        <h1 className="text-3xl font-bold">IPFS with Pinata Test Page</h1>
-        <p className="text-muted-foreground">
-          Use this page to test the Pinata integration with IPFS. You can upload files, 
+        <Title order={1}>IPFS with Pinata Test Page</Title>
+        <Text c="dimmed">
+          Use this page to test the Pinata integration with IPFS. You can upload files,
           retrieve content, and run diagnostics on CIDs.
-        </p>
+        </Text>
 
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="retrieve">Retrieve Content</TabsTrigger>
-            <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload" className="mt-4">
+          <Tabs.List>
+            <Tabs.Tab value="upload">Upload</Tabs.Tab>
+            <Tabs.Tab value="retrieve">Retrieve Content</Tabs.Tab>
+            <Tabs.Tab value="diagnostic">Diagnostic</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="upload" pt="md">
             <PinataUploader />
-          </TabsContent>
-          
-          <TabsContent value="retrieve" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Retrieve Content from IPFS</CardTitle>
-                <CardDescription>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="retrieve" pt="md">
+            <Card shadow="md" padding="lg" radius="md" withBorder>
+              <CardSection p="md" withBorder>
+                <Title order={3}>Retrieve Content from IPFS</Title>
+                <Text size="sm" c="dimmed">
                   Enter a CID to retrieve content from IPFS
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex space-x-2">
-                    <Input 
-                      placeholder="Enter CID" 
+                </Text>
+              </CardSection>
+              <CardSection p="md">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <TextInput
+                      placeholder="Enter CID"
                       value={cid}
                       onChange={(e) => setCid(e.target.value)}
+                      style={{ flex: 1 }}
                     />
-                    <Button onClick={handleContentFetch} disabled={isLoading}>
-                      {isLoading ? <Spinner className="mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                    <Button onClick={handleContentFetch} loading={isLoading} leftSection={!isLoading ? <Search size={16} /> : undefined}>
                       Fetch
                     </Button>
                   </div>
-                  
+
                   {error && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
+                    <Alert icon={<AlertCircle size={16} />} title="Error" color="red">
+                      {error}
                     </Alert>
                   )}
-                  
+
                   {result && result.status === 'success' && (
-                    <Alert className="bg-green-50 border-green-200">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <AlertTitle className="text-green-700">Content Retrieved</AlertTitle>
-                      <AlertDescription className="text-green-600">
-                        <div className="mt-2">
-                          <p><strong>Content Type:</strong> {result.contentType}</p>
-                          <div className="mt-2 p-4 bg-gray-100 rounded-md overflow-auto max-h-96">
-                            <pre className="text-xs">
-                              {typeof result.data === 'object' 
-                                ? JSON.stringify(result.data, null, 2) 
-                                : result.data}
-                            </pre>
-                          </div>
+                    <Alert icon={<CheckCircle size={16} />} title="Content Retrieved" color="green" style={{ backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}>
+                      <div>
+                        <p><strong>Content Type:</strong> {result.contentType}</p>
+                        <div className="mt-2 p-4 rounded-md" style={{ backgroundColor: '#f3f4f6', overflow: 'auto', maxHeight: '24rem' }}>
+                          <pre style={{ fontSize: '0.75rem' }}>
+                            {typeof result.data === 'object'
+                              ? JSON.stringify(result.data, null, 2)
+                              : result.data}
+                          </pre>
                         </div>
-                      </AlertDescription>
+                      </div>
                     </Alert>
                   )}
                 </div>
-              </CardContent>
+              </CardSection>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="diagnostic" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>IPFS Diagnostic</CardTitle>
-                <CardDescription>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="diagnostic" pt="md">
+            <Card shadow="md" padding="lg" radius="md" withBorder>
+              <CardSection p="md" withBorder>
+                <Title order={3}>IPFS Diagnostic</Title>
+                <Text size="sm" c="dimmed">
                   Check the status of a CID on Pinata and IPFS
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex space-x-2">
-                    <Input 
-                      placeholder="Enter CID" 
+                </Text>
+              </CardSection>
+              <CardSection p="md">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <TextInput
+                      placeholder="Enter CID"
                       value={cid}
                       onChange={(e) => setCid(e.target.value)}
+                      style={{ flex: 1 }}
                     />
-                    <Button onClick={handleDiagnostic} disabled={isLoading}>
-                      {isLoading ? <Spinner className="mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                    <Button onClick={handleDiagnostic} loading={isLoading} leftSection={!isLoading ? <Search size={16} /> : undefined}>
                       Check
                     </Button>
                   </div>
-                  
+
                   {error && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
+                    <Alert icon={<AlertCircle size={16} />} title="Error" color="red">
+                      {error}
                     </Alert>
                   )}
-                  
+
                   {result && (
-                    <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto max-h-96">
-                      <pre className="text-xs">
+                    <div className="p-4 rounded-md" style={{ backgroundColor: '#f3f4f6', overflow: 'auto', maxHeight: '24rem' }}>
+                      <pre style={{ fontSize: '0.75rem' }}>
                         {JSON.stringify(result, null, 2)}
                       </pre>
                     </div>
                   )}
                 </div>
-              </CardContent>
+              </CardSection>
             </Card>
-          </TabsContent>
+          </Tabs.Panel>
         </Tabs>
       </div>
     </>

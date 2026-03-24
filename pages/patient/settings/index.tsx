@@ -1,238 +1,228 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import PatientLayout from '@/components/layout/PatientLayout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { Card, Text, Button, Switch, TextInput, Divider, Tabs } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 
 export default function PatientSettingsPage() {
   const { data: session } = useSession();
-  const { toast } = useToast();
-  
+
   // Profile settings
   const [name, setName] = useState(session?.user?.name || '');
   const [email, setEmail] = useState(session?.user?.email || '');
   const [phone, setPhone] = useState('');
-  
+
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [appointmentReminders, setAppointmentReminders] = useState(true);
   const [dataAccessAlerts, setDataAccessAlerts] = useState(true);
-  
+
   // Privacy settings
   const [autoApproveProviders, setAutoApproveProviders] = useState(false);
   const [shareAnonymizedData, setShareAnonymizedData] = useState(false);
-  
+
   // Handle profile update
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would call an API to update the user profile
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been updated successfully.",
+    notifications.show({
+      title: 'Profile Updated',
+      message: 'Your profile information has been updated successfully.',
     });
   };
-  
+
   // Handle notification settings update
   const handleNotificationUpdate = () => {
     // In a real app, this would call an API to update notification preferences
-    toast({
-      title: "Notification Settings Updated",
-      description: "Your notification preferences have been saved.",
+    notifications.show({
+      title: 'Notification Settings Updated',
+      message: 'Your notification preferences have been saved.',
     });
   };
-  
+
   // Handle privacy settings update
   const handlePrivacyUpdate = () => {
     // In a real app, this would call an API to update privacy settings
-    toast({
-      title: "Privacy Settings Updated",
-      description: "Your privacy preferences have been saved.",
+    notifications.show({
+      title: 'Privacy Settings Updated',
+      message: 'Your privacy preferences have been saved.',
     });
   };
 
   return (
     <PatientLayout>
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
-        <p className="text-muted-foreground mb-8">
+      <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '2rem 1rem' }}>
+        <Text fw={700} size="xl" mb="xs">Account Settings</Text>
+        <Text c="dimmed" mb="xl">
           Manage your account preferences and settings
-        </p>
-        
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="mb-8">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy & Security</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="profile" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Update your personal information and contact details
-                </CardDescription>
-              </CardHeader>
+        </Text>
+
+        <Tabs defaultValue="profile">
+          <Tabs.List mb="xl">
+            <Tabs.Tab value="profile">Profile</Tabs.Tab>
+            <Tabs.Tab value="notifications">Notifications</Tabs.Tab>
+            <Tabs.Tab value="privacy">Privacy & Security</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="profile">
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Text fw={700} size="lg" mb="xs">Profile Information</Text>
+              <Text size="sm" c="dimmed" mb="md">
+                Update your personal information and contact details
+              </Text>
+              <Divider mb="md" />
               <form onSubmit={handleProfileUpdate}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input 
-                      id="name" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <Text size="sm" fw={500} mb={4}>Full Name</Text>
+                    <TextInput
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       placeholder="Your full name"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
+
+                  <div>
+                    <Text size="sm" fw={500} mb={4}>Email Address</Text>
+                    <TextInput
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="Your email address"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      value={phone} 
-                      onChange={(e) => setPhone(e.target.value)} 
+
+                  <div>
+                    <Text size="sm" fw={500} mb={4}>Phone Number</Text>
+                    <TextInput
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="Your phone number"
                     />
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit">Save Changes</Button>
-                </CardFooter>
+                </div>
+                <Button type="submit" mt="md">Save Changes</Button>
               </form>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="notifications" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Control how and when you receive notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="email-notifications">Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
+          </Tabs.Panel>
+
+          <Tabs.Panel value="notifications">
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Text fw={700} size="lg" mb="xs">Notification Preferences</Text>
+              <Text size="sm" c="dimmed" mb="md">
+                Control how and when you receive notifications
+              </Text>
+              <Divider mb="md" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text size="sm" fw={500}>Email Notifications</Text>
+                    <Text size="xs" c="dimmed">
                       Receive notifications via email
-                    </p>
+                    </Text>
                   </div>
-                  <Switch 
-                    id="email-notifications" 
-                    checked={emailNotifications} 
-                    onCheckedChange={setEmailNotifications} 
+                  <Switch
+                    id="email-notifications"
+                    checked={emailNotifications}
+                    onChange={(event) => setEmailNotifications(event.currentTarget.checked)}
                   />
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="appointment-reminders">Appointment Reminders</Label>
-                    <p className="text-sm text-muted-foreground">
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text size="sm" fw={500}>Appointment Reminders</Text>
+                    <Text size="xs" c="dimmed">
                       Receive reminders about upcoming appointments
-                    </p>
+                    </Text>
                   </div>
-                  <Switch 
-                    id="appointment-reminders" 
-                    checked={appointmentReminders} 
-                    onCheckedChange={setAppointmentReminders} 
+                  <Switch
+                    id="appointment-reminders"
+                    checked={appointmentReminders}
+                    onChange={(event) => setAppointmentReminders(event.currentTarget.checked)}
                   />
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="data-access-alerts">Data Access Alerts</Label>
-                    <p className="text-sm text-muted-foreground">
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text size="sm" fw={500}>Data Access Alerts</Text>
+                    <Text size="xs" c="dimmed">
                       Get notified when someone accesses your medical data
-                    </p>
+                    </Text>
                   </div>
-                  <Switch 
-                    id="data-access-alerts" 
-                    checked={dataAccessAlerts} 
-                    onCheckedChange={setDataAccessAlerts} 
+                  <Switch
+                    id="data-access-alerts"
+                    checked={dataAccessAlerts}
+                    onChange={(event) => setDataAccessAlerts(event.currentTarget.checked)}
                   />
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleNotificationUpdate}>Save Preferences</Button>
-              </CardFooter>
+              </div>
+              <Button onClick={handleNotificationUpdate} mt="md">Save Preferences</Button>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="privacy" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Privacy & Security</CardTitle>
-                <CardDescription>
-                  Manage your data sharing and security preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="auto-approve">Auto-approve Trusted Providers</Label>
-                    <p className="text-sm text-muted-foreground">
+          </Tabs.Panel>
+
+          <Tabs.Panel value="privacy">
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Text fw={700} size="lg" mb="xs">Privacy & Security</Text>
+              <Text size="sm" c="dimmed" mb="md">
+                Manage your data sharing and security preferences
+              </Text>
+              <Divider mb="md" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text size="sm" fw={500}>Auto-approve Trusted Providers</Text>
+                    <Text size="xs" c="dimmed">
                       Automatically approve data access requests from your primary care providers
-                    </p>
+                    </Text>
                   </div>
-                  <Switch 
-                    id="auto-approve" 
-                    checked={autoApproveProviders} 
-                    onCheckedChange={setAutoApproveProviders} 
+                  <Switch
+                    id="auto-approve"
+                    checked={autoApproveProviders}
+                    onChange={(event) => setAutoApproveProviders(event.currentTarget.checked)}
                   />
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="anonymized-data">Share Anonymized Data</Label>
-                    <p className="text-sm text-muted-foreground">
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text size="sm" fw={500}>Share Anonymized Data</Text>
+                    <Text size="xs" c="dimmed">
                       Allow your anonymized medical data to be used for research purposes
-                    </p>
+                    </Text>
                   </div>
-                  <Switch 
-                    id="anonymized-data" 
-                    checked={shareAnonymizedData} 
-                    onCheckedChange={setShareAnonymizedData} 
+                  <Switch
+                    id="anonymized-data"
+                    checked={shareAnonymizedData}
+                    onChange={(event) => setShareAnonymizedData(event.currentTarget.checked)}
                   />
                 </div>
-                
-                <div className="pt-4">
-                  <h3 className="text-lg font-medium mb-2">Security Options</h3>
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
+
+                <Divider my="md" />
+                <div>
+                  <Text fw={500} size="md" mb="sm">Security Options</Text>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <Button variant="outline" fullWidth style={{ justifyContent: 'flex-start' }}>
                       Change Password
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" fullWidth style={{ justifyContent: 'flex-start' }}>
                       Two-Factor Authentication
                     </Button>
-                    <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+                    <Button
+                      variant="outline"
+                      fullWidth
+                      style={{ justifyContent: 'flex-start', color: 'var(--mantine-color-red-6)' }}
+                    >
                       Delete Account
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handlePrivacyUpdate}>Save Settings</Button>
-              </CardFooter>
+              </div>
+              <Button onClick={handlePrivacyUpdate} mt="md">Save Settings</Button>
             </Card>
-          </TabsContent>
+          </Tabs.Panel>
         </Tabs>
       </div>
     </PatientLayout>

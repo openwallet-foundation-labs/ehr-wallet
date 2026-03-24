@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useRef, forwardRef, ForwardedRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button, Text, Group, Stack } from '@mantine/core';
 import { X, Upload, File, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
   onChange: (files: File[]) => void;
@@ -81,7 +79,7 @@ export const FileUpload = forwardRef((
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const validFiles = validateFiles(e.dataTransfer.files);
       if (validFiles.length > 0) {
@@ -98,19 +96,19 @@ export const FileUpload = forwardRef((
 
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
-    
+
     if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension || '')) {
-      return <File className="h-5 w-5 text-blue-500" />;
+      return <File size={20} color="#3b82f6" />;
     } else if (['pdf'].includes(extension || '')) {
-      return <FileText className="h-5 w-5 text-red-500" />;
+      return <FileText size={20} color="#ef4444" />;
     } else if (['doc', 'docx'].includes(extension || '')) {
-      return <FileText className="h-5 w-5 text-blue-600" />;
+      return <FileText size={20} color="#2563eb" />;
     } else if (['xls', 'xlsx'].includes(extension || '')) {
-      return <FileText className="h-5 w-5 text-green-600" />;
+      return <FileText size={20} color="#16a34a" />;
     } else if (['ppt', 'pptx'].includes(extension || '')) {
-      return <FileText className="h-5 w-5 text-orange-500" />;
+      return <FileText size={20} color="#ea580c" />;
     } else {
-      return <FileText className="h-5 w-5 text-gray-500" />;
+      return <FileText size={20} color="#6b7280" />;
     }
   };
 
@@ -123,15 +121,24 @@ export const FileUpload = forwardRef((
   return (
     <div ref={ref} className={className}>
       <div
-        className={cn(
-          "relative flex flex-col items-center justify-center w-full p-6 border-2 border-dashed rounded-lg transition-colors",
-          dragActive ? "border-primary bg-primary/5" : "border-input",
-          value.length > 0 && "pb-2"
-        )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          padding: 24,
+          borderRadius: 8,
+          border: `2px dashed ${dragActive ? '#3b82f6' : '#d1d5db'}`,
+          backgroundColor: dragActive ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+          transition: 'all 0.2s',
+          cursor: 'pointer'
+        }}
       >
         <input
           ref={inputRef}
@@ -139,50 +146,67 @@ export const FileUpload = forwardRef((
           multiple={multiple}
           onChange={handleChange}
           accept={accept}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer'
+          }}
         />
-        
-        <div className="flex flex-col items-center justify-center text-center">
-          <Upload className="h-10 w-10 text-muted-foreground mb-2" />
-          <p className="text-sm font-medium mb-1">
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <Upload size={40} color="#6b7280" style={{ marginBottom: 8 }} />
+          <Text size="sm" fw={500} mb="xs">
             Drag & drop files here, or click to select files
-          </p>
-          <p className="text-xs text-muted-foreground mb-2">
+          </Text>
+          <Text size="xs" c="dimmed" mb="xs">
             Supports {accept.split(',').join(', ')}
-          </p>
-          <p className="text-xs text-muted-foreground">
+          </Text>
+          <Text size="xs" c="dimmed">
             Max {maxFiles} files, up to {maxSize}MB each
-          </p>
+          </Text>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-destructive mt-2">{error}</p>
+        <Text size="sm" c="red" mt="xs">{error}</Text>
       )}
 
       {value.length > 0 && (
-        <ul className="mt-4 space-y-2">
+        <Stack gap="xs" mt="md">
           {value.map((file, index) => (
-            <li key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-              <div className="flex items-center space-x-2 overflow-hidden">
+            <div
+              key={index}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 8,
+                backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                borderRadius: 6
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
                 {getFileIcon(file.name)}
-                <div className="overflow-hidden">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                <div style={{ overflow: 'hidden' }}>
+                  <Text size="sm" fw={500} lineClamp={1}>{file.name}</Text>
+                  <Text size="xs" c="dimmed">{formatFileSize(file.size)}</Text>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="subtle"
+                size="xs"
                 onClick={() => handleRemove(index)}
-                className="h-8 w-8 p-0"
+                style={{ padding: 4, minWidth: 'auto' }}
               >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Remove file</span>
+                <X size={16} />
               </Button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </Stack>
       )}
     </div>
   );

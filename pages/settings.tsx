@@ -1,14 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, Text, Button, Switch, Avatar, Divider, TextInput, Textarea, Title } from "@mantine/core";
 
 export default function Settings() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -30,90 +22,84 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-2 md:px-0 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex items-center gap-6">
-              <Avatar>
-                <AvatarImage src="/avatar-placeholder.png" alt="User avatar" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" {...register("name", { required: true })} className="mt-1" />
-                {errors.name && <span className="text-xs text-red-600">Name is required</span>}
-              </div>
-            </div>
+    <div style={{ maxWidth: "42rem", margin: "0 auto", padding: "2rem 0.5rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={3}>Profile</Title>
+        <Text size="sm" c="dimmed" mb="md">Update your personal information.</Text>
+        <Divider mb="md" />
+        <form style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }} onSubmit={handleSubmit(onSubmit)}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+            <Avatar src="/avatar-placeholder.png" alt="User avatar" radius="xl" size="lg">
+              JD
+            </Avatar>
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register("email", { required: true })} className="mt-1" />
-              {errors.email && <span className="text-xs text-red-600">Email is required</span>}
+              <Text size="sm" fw={500} mb={4}>Name</Text>
+              <TextInput
+                id="name"
+                {...register("name", { required: true })}
+                error={errors.name ? "Name is required" : undefined}
+              />
             </div>
-            <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" {...register("bio")} className="mt-1" />
-            </div>
-            <Button type="submit" disabled={isSubmitting} className="mt-2">Save Profile</Button>
-          </form>
-        </CardContent>
+          </div>
+          <div>
+            <Text size="sm" fw={500} mb={4}>Email</Text>
+            <TextInput
+              id="email"
+              type="email"
+              {...register("email", { required: true })}
+              error={errors.email ? "Email is required" : undefined}
+            />
+          </div>
+          <div>
+            <Text size="sm" fw={500} mb={4}>Bio</Text>
+            <Textarea id="bio" {...register("bio")} />
+          </div>
+          <Button type="submit" loading={isSubmitting} mt="sm">Save Profile</Button>
+        </form>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Password</CardTitle>
-          <CardDescription>Change your account password.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <div>
-              <Label htmlFor="password">Current Password</Label>
-              <Input id="password" type="password" {...register("password")} className="mt-1" />
-            </div>
-            <div>
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" {...register("newPassword")} className="mt-1" />
-            </div>
-            <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" {...register("confirmPassword")} className="mt-1" />
-            </div>
-            <Button type="submit" variant="secondary" disabled={isSubmitting}>Update Password</Button>
-          </form>
-        </CardContent>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={3}>Password</Title>
+        <Text size="sm" c="dimmed" mb="md">Change your account password.</Text>
+        <Divider mb="md" />
+        <form style={{ display: "flex", flexDirection: "column", gap: "1rem" }} onSubmit={handleSubmit(onSubmit)}>
+          <div>
+            <Text size="sm" fw={500} mb={4}>Current Password</Text>
+            <TextInput id="password" type="password" {...register("password")} />
+          </div>
+          <div>
+            <Text size="sm" fw={500} mb={4}>New Password</Text>
+            <TextInput id="newPassword" type="password" {...register("newPassword")} />
+          </div>
+          <div>
+            <Text size="sm" fw={500} mb={4}>Confirm New Password</Text>
+            <TextInput id="confirmPassword" type="password" {...register("confirmPassword")} />
+          </div>
+          <Button type="submit" variant="light" loading={isSubmitting}>Update Password</Button>
+        </form>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-          <CardDescription>Manage your notification and marketing preferences.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="notifications">Email Notifications</Label>
-                <div className="text-xs text-muted-foreground">Receive updates about appointments and reports.</div>
-              </div>
-              <Switch id="notifications" {...register("notifications")} />
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={3}>Preferences</Title>
+        <Text size="sm" c="dimmed" mb="md">Manage your notification and marketing preferences.</Text>
+        <Divider mb="md" />
+        <form style={{ display: "flex", flexDirection: "column", gap: "1rem" }} onSubmit={handleSubmit(onSubmit)}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <Text size="sm" fw={500}>Email Notifications</Text>
+              <Text size="xs" c="dimmed">Receive updates about appointments and reports.</Text>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="marketing">Marketing Emails</Label>
-                <div className="text-xs text-muted-foreground">Get product news and feature updates.</div>
-              </div>
-              <Switch id="marketing" {...register("marketing")} />
+            <Switch id="notifications" {...register("notifications")} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <Text size="sm" fw={500}>Marketing Emails</Text>
+              <Text size="xs" c="dimmed">Get product news and feature updates.</Text>
             </div>
-            <Button type="submit" variant="outline" disabled={isSubmitting}>Save Preferences</Button>
-          </form>
-        </CardContent>
+            <Switch id="marketing" {...register("marketing")} />
+          </div>
+          <Button type="submit" variant="outline" loading={isSubmitting}>Save Preferences</Button>
+        </form>
       </Card>
     </div>
   );

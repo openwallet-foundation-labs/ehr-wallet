@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Home, Share, ClipboardList, Settings } from "lucide-react";
+import { Home, Share, ClipboardList, Settings, Heart } from "lucide-react";
+import { Box, Group, Text, UnstyledButton } from "@mantine/core";
 
 export function MobileBottomNav() {
   const router = useRouter();
@@ -9,48 +10,79 @@ export function MobileBottomNav() {
     { href: "/", label: "Home", icon: Home },
     { href: "/patient/share-data", label: "Share", icon: Share },
     { href: "/patient/access-logs", label: "Logs", icon: ClipboardList },
-    { href: "/patient/settings", label: "Settings", icon: Settings },
+    { href: "/patient/wallet", label: "Wallet", icon: Heart },
   ];
-  
+
   const isActive = (path: string) => {
     return router.pathname === path || router.pathname.startsWith(`${path}/`);
   };
-  
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 border-t border-gray-200 dark:border-gray-800 pb-2">
-      <nav className="flex justify-around items-center h-16 mb-1">
-        {routes.map((route) => {
-          const Icon = route.icon;
-          return (
-            <Link
-              key={route.href}
-              href={route.href}
-              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
-                isActive(route.href)
-                  ? "text-primary"
-                  : "text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
-              }`}
-            >
-              <span className={
-                isActive(route.href)
-                  ? "flex items-center justify-center rounded-full bg-primary text-white h-10 w-10 border-2 border-primary shadow-md"
-                  : "flex items-center justify-center h-10 w-10"
-              }>
-                <Icon className={
-                  isActive(route.href)
-                    ? "h-6 w-6 text-white"
-                    : "h-5 w-5"
-                } />
-              </span>
-              <span className={
-                isActive(route.href)
-                  ? "text-xs mt-1 font-semibold text-white drop-shadow-sm"
-                  : "text-xs mt-1 text-gray-500 dark:text-gray-400"
-              }>{route.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-bottom-nav {
+            display: block !important;
+          }
+        }
+      `}</style>
+      <Box
+        component="nav"
+        className="mobile-bottom-nav"
+        style={{
+          display: 'none',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          backgroundColor: 'var(--mantine-color-white)',
+          borderTop: '1px solid var(--mantine-color-gray-3)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+        }}
+      >
+        <Group justify="space-around" h={64}>
+          {routes.map((route) => {
+            const Icon = route.icon;
+            const active = isActive(route.href);
+
+            return (
+              <Link
+                key={route.href}
+                href={route.href}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none',
+                  width: '100%',
+                  height: '100%',
+                }}
+              >
+                <UnstyledButton
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '8px 12px',
+                    borderRadius: active ? 16 : 8,
+                    backgroundColor: active ? 'var(--mantine-color-teal-6)' : 'transparent',
+                    color: active ? 'white' : 'var(--mantine-color-gray-6)',
+                    transition: 'all 200ms ease',
+                  }}
+                >
+                  <Icon size={22} />
+                  <Text size="xs" fw={active ? 600 : 400}>
+                    {route.label}
+                  </Text>
+                </UnstyledButton>
+              </Link>
+            );
+          })}
+        </Group>
+      </Box>
+    </>
   );
 }

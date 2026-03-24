@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 
 /**
  * API endpoint to find an accessId based on an IPFS CID

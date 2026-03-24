@@ -1,8 +1,9 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { Tabs, Card, Text, Button, Alert, Title } from '@mantine/core';
 import PatientLayout from '@/components/layout/PatientLayout';
 
 // Temporarily use regular imports to debug dynamic import issue
@@ -24,15 +25,15 @@ export default function ShareDataPage() {
     setShareableLink(link);
     setAccessId(id);
     setActiveTab('share');
-    
+
     // Start a timer to redirect back to dashboard after showing the share link
     const timer = window.setTimeout(() => {
       router.push('/patient/dashboard?tab=shared-data&refresh=true');
     }, 10000); // 10 seconds
-    
+
     setRedirectTimer(timer);
   };
-  
+
   // Clear the redirect timer when component unmounts
   useEffect(() => {
     return () => {
@@ -44,42 +45,46 @@ export default function ShareDataPage() {
 
   // Allow anonymous access to share-data page
   const isAnonymousAccess = !session || !session.user;
-  
+
   if (isAnonymousAccess) {
     return (
       <PatientLayout>
-        <div className="container max-w-4xl mx-auto py-8 px-4">
-          <h1 className="text-3xl font-bold mb-6">Share Your Medical Data</h1>
-          <div className="p-4 border rounded-md bg-blue-50 text-blue-800 mb-6">
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: 40, paddingLeft: 20, paddingRight: 20 }}>
+          <Title order={1}>Share Your Medical Data</Title>
+          <Alert
+            color="blue"
+            mb="xl"
+            style={{ backgroundColor: '#eff6ff', color: '#1e40af' }}
+          >
             You are accessing the data sharing feature without authentication. You can still share medical data anonymously.
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="form">Select Data</TabsTrigger>
-              <TabsTrigger value="share" disabled={!shareableLink}>Share Link</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="form" className="mt-0">
-              <DataSharingForm 
-                patientId={"anonymous"} 
-                onSuccess={handleShareSuccess} 
+          </Alert>
+
+          <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'form')} variant="outline">
+            <Tabs.List grow mb="xl">
+              <Tabs.Tab value="form">Select Data</Tabs.Tab>
+              <Tabs.Tab value="share" disabled={!shareableLink}>Share Link</Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="form">
+              <DataSharingForm
+                patientId={"anonymous"}
+                onSuccess={handleShareSuccess}
               />
-            </TabsContent>
-            
-            <TabsContent value="share" className="mt-0">
+            </Tabs.Panel>
+
+            <Tabs.Panel value="share">
               {shareableLink && accessId && (
                 <>
-                  <ShareDisplay 
-                    shareableLink={shareableLink} 
-                    accessId={accessId} 
+                  <ShareDisplay
+                    shareableLink={shareableLink}
+                    accessId={accessId}
                   />
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <Text size="sm" c="dimmed" mb="sm">
                       Your data has been shared successfully. You can bookmark this page or copy the link above.
-                    </p>
-                    <Button 
-                      variant="outline" 
+                    </Text>
+                    <Button
+                      variant="outline"
                       onClick={() => setActiveTab('form')}
                     >
                       Share More Data
@@ -87,7 +92,7 @@ export default function ShareDataPage() {
                   </div>
                 </>
               )}
-            </TabsContent>
+            </Tabs.Panel>
           </Tabs>
         </div>
       </PatientLayout>
@@ -96,44 +101,44 @@ export default function ShareDataPage() {
 
   return (
     <PatientLayout>
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-6">Share Your Medical Data</h1>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger value="form">Select Data</TabsTrigger>
-          <TabsTrigger value="share" disabled={!shareableLink}>Share Link</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="form" className="mt-0">
-          <DataSharingForm 
-            patientId={session.user.id} 
-            onSuccess={handleShareSuccess} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="share" className="mt-0">
-          {shareableLink && accessId && (
-            <>
-              <ShareDisplay 
-                shareableLink={shareableLink} 
-                accessId={accessId} 
-              />
-              <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  You will be redirected to the dashboard in a few seconds, or you can click the button below.  
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => router.push('/patient/dashboard?tab=shared-data&refresh=true')}
-                >
-                  Return to Dashboard
-                </Button>
-              </div>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: 40, paddingLeft: 20, paddingRight: 20 }}>
+        <Title order={1}>Share Your Medical Data</Title>
+
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'form')} variant="outline">
+          <Tabs.List grow mb="xl">
+            <Tabs.Tab value="form">Select Data</Tabs.Tab>
+            <Tabs.Tab value="share" disabled={!shareableLink}>Share Link</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="form">
+            <DataSharingForm
+              patientId={session.user.id}
+              onSuccess={handleShareSuccess}
+            />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="share">
+            {shareableLink && accessId && (
+              <>
+                <ShareDisplay
+                  shareableLink={shareableLink}
+                  accessId={accessId}
+                />
+                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                  <Text size="sm" c="dimmed" mb="sm">
+                    You will be redirected to the dashboard in a few seconds, or you can click the button below.
+                  </Text>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push('/patient/dashboard?tab=shared-data&refresh=true')}
+                  >
+                    Return to Dashboard
+                  </Button>
+                </div>
+              </>
+            )}
+          </Tabs.Panel>
+        </Tabs>
       </div>
     </PatientLayout>
   );

@@ -1,22 +1,15 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FileText, FlaskConical, Image, Pill, ClipboardList, Clock, Shield, AlertCircle, CheckCircle2, Info, Upload } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Card, Text, Button, Checkbox, Select, Tabs, Progress, TextInput, PasswordInput, Group, Stack, Badge, Alert } from '@mantine/core';
+import { Loader2, FileText, FlaskConical, Image, Pill, ClipboardList, Clock, Shield, AlertCircle, Info, Upload } from 'lucide-react';
 import { encryptData, uploadToIpfs, checkIpfsAvailability } from '@/lib/web3/ipfs';
 import { pinataService } from '@/lib/web3/pinata';
 import { createAccessGrant, generateShareableLink } from '@/lib/web3/contract';
 import { FileUpload } from '@/components/ui/file-upload';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 // Define the form schema
@@ -26,7 +19,7 @@ const formSchema = z.object({
   password: z.string()
     .optional()
     .refine(
-      (val) => !val || val.length >= 6, 
+      (val) => !val || val.length >= 6,
       { message: 'Password must be at least 6 characters long' }
     ),
   usePassword: z.boolean().default(false),
@@ -34,7 +27,7 @@ const formSchema = z.object({
   documents: z.array(z.any())
     .optional()
     .refine(
-      (val) => !val || val.length > 0, 
+      (val) => !val || val.length > 0,
       { message: 'Please upload at least one document' }
     ),
   termsAccepted: z.boolean().refine((val) => val === true, {
@@ -46,32 +39,32 @@ type FormValues = z.infer<typeof formSchema>;
 
 // Available data types with descriptions and icons
 const dataTypeOptions = [
-  { 
-    id: 'medical-history', 
+  {
+    id: 'medical-history',
     label: 'Medical History',
     description: 'Share your complete medical history and conditions',
     icon: 'FileText'
   },
-  { 
-    id: 'lab-results', 
+  {
+    id: 'lab-results',
     label: 'Lab Results',
     description: 'Share blood work, urine tests, and other laboratory results',
     icon: 'FlaskConical'
   },
-  { 
-    id: 'imaging', 
+  {
+    id: 'imaging',
     label: 'Imaging & Scans',
     description: 'Share X-rays, MRIs, CT scans, and other imaging results',
     icon: 'Image'
   },
-  { 
-    id: 'prescriptions', 
+  {
+    id: 'prescriptions',
     label: 'Prescriptions',
     description: 'Share current and past medication prescriptions',
     icon: 'Pill'
   },
-  { 
-    id: 'visit-notes', 
+  {
+    id: 'visit-notes',
     label: 'Visit Notes',
     description: 'Share doctor visit summaries and clinical notes',
     icon: 'ClipboardList'
@@ -99,7 +92,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
   const [uploadStage, setUploadStage] = useState<string>('');
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const form = useForm<FormValues>({
+  const { control, handleSubmit, watch, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       dataTypes: [],
@@ -112,16 +105,16 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
     },
   });
 
-  const usePassword = form.watch('usePassword');
-  const uploadMode = form.watch('uploadMode');
+  const usePassword = watch('usePassword');
+  const uploadMode = watch('uploadMode');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showLogs, setShowLogs] = useState(false);
-  
+
   // Function to add logs
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, `${timestamp}: ${message}`]);
-    
+
     // Scroll to bottom of logs
     setTimeout(() => {
       logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -136,20 +129,20 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
     setUploadProgress(0);
     setUploadStage('Initializing...');
     addLog('Starting data sharing process...');
-    
+
     // Validate form data
     if (values.uploadMode === 'documents' && (!uploadedFiles || uploadedFiles.length === 0)) {
       setError('Please upload at least one document to share');
       setIsSubmitting(false);
       return;
     }
-    
+
     if (values.usePassword && (!values.password || values.password.length < 6)) {
       setError('Please enter a password with at least 6 characters');
       setIsSubmitting(false);
       return;
     }
-    
+
     // Flag to track if we should use direct IPFS (no contract)
     const useDirectIpfs = !process.env.NEXT_PUBLIC_ACCESS_CONTRACT_ADDRESS;
     if (useDirectIpfs) {
@@ -164,7 +157,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
 
       // Add a flag to bypass MetaMask requirement for testing
       const bypassMetaMask = true; // Set to true to bypass MetaMask requirement
-      
+
       if (!window.ethereum && !bypassMetaMask) {
         addLog('ERROR: MetaMask not found');
         throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
@@ -176,7 +169,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
 
       // Request account access if not already connected
       let address = 'test-address-' + Date.now().toString(16);
-      
+
       if (window.ethereum) {
         try {
           addLog('Requesting MetaMask account access...');
@@ -267,7 +260,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
           addLog('Pinata service is configured and will be used as primary IPFS provider.');
         } else {
           addLog('Pinata service is not configured. Will use alternative IPFS providers.');
-          
+
           // Check other IPFS availability
           const isIpfsAvailable = await checkIpfsAvailability();
           if (!isIpfsAvailable) {
@@ -279,7 +272,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
       } catch (error) {
         addLog('WARNING: Could not verify IPFS availability. Will attempt upload with fallbacks.');
       }
-      
+
       // Upload to IPFS with Pinata prioritized
       setUploadProgress(60);
       setUploadStage('Uploading to IPFS...');
@@ -287,7 +280,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
       addLog('Data to upload: ' + (typeof ipfsData === 'string' ? ipfsData.substring(0, 50) + '...' : JSON.stringify(dataToShare).substring(0, 50) + '...'));
       try {
         let ipfsCid;
-        
+
         // Try Pinata first if configured
         if (pinataService.isConfigured()) {
           try {
@@ -347,17 +340,17 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
           // Generate shareable link
           const shareableLink = generateShareableLink(accessId);
           addLog(`Generated shareable link: ${shareableLink}`);
-          
+
           // Save the shared data to the database via API
           setUploadProgress(85);
           setUploadStage('Saving to database...');
           try {
             addLog('Saving shared data to database...');
-            
+
             // Calculate expiry time based on duration
             const durationSeconds = parseInt(values.duration);
             const expiryTime = new Date(Date.now() + durationSeconds * 1000);
-            
+
             // Prepare data for API
             const sharedDataPayload = {
               accessId,
@@ -366,9 +359,9 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
               hasPassword: values.usePassword,
               dataTypes: values.dataTypes
             };
-            
+
             addLog(`Sending payload to API: ${JSON.stringify(sharedDataPayload)}`);
-            
+
             // Call the API to save the shared data
             const response = await fetch('/api/shared-data', {
               method: 'POST',
@@ -379,7 +372,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
               // Ensure we don't use cached responses
               cache: 'no-store'
             });
-            
+
             if (!response.ok) {
               let errorMessage = 'Failed to save shared data';
               try {
@@ -390,7 +383,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
               }
               throw new Error(errorMessage);
             }
-            
+
             // Try to get the response data
             let responseData;
             try {
@@ -399,7 +392,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
             } catch (e) {
               addLog('Could not parse API response, but operation was successful');
             }
-            
+
             addLog('Shared data saved to database successfully');
           } catch (apiError: any) {
             addLog(`WARNING: Failed to save to database: ${apiError.message}`);
@@ -428,10 +421,10 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
     } catch (error: any) {
       console.error('Error in data sharing process:', error);
       const errorMessage = error.message || 'An unknown error occurred';
-      
+
       // Provide user-friendly error messages
       let userFriendlyError = errorMessage;
-      
+
       if (errorMessage.includes('404')) {
         userFriendlyError = 'The IPFS service is temporarily unavailable. Please try again in a few minutes.';
         addLog('This appears to be an IPFS connection issue. The IPFS service might be temporarily unavailable.');
@@ -449,7 +442,7 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
       } else if (errorMessage.includes('password')) {
         userFriendlyError = 'There was an issue with the password protection. Please try a different password.';
       }
-      
+
       setError(userFriendlyError);
       addLog(`ERROR: ${errorMessage}`);
     } finally {
@@ -467,10 +460,10 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
       reader.onerror = error => reject(error);
     });
   };
-  
+
   // Helper function to reset the form
   const resetForm = () => {
-    form.reset({
+    reset({
       dataTypes: [],
       duration: '86400', // Default to 1 day
       usePassword: false,
@@ -484,398 +477,494 @@ const DataSharingForm = ({ patientId, onSuccess }: DataSharingFormProps) => {
     setLogs([]);
   };
 
+  // Get icon component based on icon name
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case 'FileText': return FileText;
+      case 'FlaskConical': return FlaskConical;
+      case 'Image': return Image;
+      case 'Pill': return Pill;
+      case 'ClipboardList': return ClipboardList;
+      default: return FileText;
+    }
+  };
+
   return (
-    <Card className="w-full shadow-lg border-2">
-      <CardHeader className="pb-6 space-y-4 bg-gradient-to-r from-primary/5 to-primary/10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Shield className="h-6 w-6 text-primary" />
+    <Card shadow="md" radius="md" withBorder style={{ width: '100%' }}>
+      <Card.Section p="xl" style={{ background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)' }}>
+        <Group gap="md">
+          <div style={{
+            padding: 8,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Shield size={24} color="#3b82f6" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Share Your Medical Data</CardTitle>
-            <CardDescription className="text-base">
+            <Text size="xl" fw={700} style={{ fontSize: '1.5rem' }}>Share Your Medical Data</Text>
+            <Text size="md" c="dimmed">
               Securely share your medical data or documents with healthcare providers using encryption and blockchain technology
-            </CardDescription>
+            </Text>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
+        </Group>
+      </Card.Section>
+
+      <Card.Section p="xl">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Stack gap="xl">
+            {/* Upload Mode Tabs */}
+            <Controller
               name="uploadMode"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                <div>
+                  <Group gap="sm" mb="sm">
+                    <div style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 14
+                    }}>
                       1
                     </div>
-                    <FormLabel className="text-lg font-semibold">What would you like to share?</FormLabel>
-                  </div>
+                    <Text size="lg" fw={600}>What would you like to share?</Text>
+                  </Group>
                   <Tabs
                     value={field.value}
-                    onValueChange={field.onChange}
-                    className="w-full mb-6"
+                    onChange={field.onChange}
+                    variant="outline"
                   >
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="data">Medical Data</TabsTrigger>
-                      <TabsTrigger value="documents">Documents</TabsTrigger>
-                    </TabsList>
+                    <Tabs.List grow>
+                      <Tabs.Tab value="data">Medical Data</Tabs.Tab>
+                      <Tabs.Tab value="documents">Documents</Tabs.Tab>
+                    </Tabs.List>
                   </Tabs>
-                  <FormMessage />
-                </FormItem>
+                  {errors.uploadMode && (
+                    <Text size="sm" c="red" mt="xs">{errors.uploadMode.message}</Text>
+                  )}
+                </div>
               )}
             />
-            
+
+            {/* Data Types Selection */}
             {uploadMode === 'data' && (
-              <FormField
-                control={form.control}
+              <Controller
                 name="dataTypes"
-                render={() => (
-                  <FormItem>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <Group gap="sm" mb="xs">
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}>
                         2
                       </div>
-                      <FormLabel className="text-lg font-semibold">Select Data Types to Share</FormLabel>
-                    </div>
-                    <FormDescription className="mb-4">
+                      <Text size="lg" fw={600}>Select Data Types to Share</Text>
+                    </Group>
+                    <Text size="sm" c="dimmed" mb="md">
                       Choose which types of medical data you want to share with your healthcare provider
-                    </FormDescription>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    </Text>
+                    <Stack gap="sm">
                       {dataTypeOptions.map((option) => {
-                        // Get the icon component based on the icon name
-                        let IconComponent;
-                        switch(option.icon) {
-                          case 'FileText': IconComponent = FileText; break;
-                          case 'FlaskConical': IconComponent = FlaskConical; break;
-                          case 'Image': IconComponent = Image; break;
-                          case 'Pill': IconComponent = Pill; break;
-                          case 'ClipboardList': IconComponent = ClipboardList; break;
-                          default: IconComponent = FileText;
-                        }
-                        
+                        const IconComponent = getIconComponent(option.icon);
+                        const isSelected = field.value?.includes(option.id);
+
                         return (
-                          <FormField
+                          <div
                             key={option.id}
-                            control={form.control}
-                            name="dataTypes"
-                            render={({ field }) => {
-                              const isSelected = field.value?.includes(option.id);
-                              return (
-                                <FormItem
-                                  key={option.id}
-                                  className={`flex flex-col rounded-lg border p-4 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                >
-                                  <div className="flex items-start space-x-3">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={isSelected}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, option.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== option.id
-                                                )
-                                              );
-                                        }}
-                                        className="mt-1"
-                                      />
-                                    </FormControl>
-                                    <div className="space-y-1">
-                                      <div className="flex items-center">
-                                        <IconComponent className="h-4 w-4 mr-2 text-primary" />
-                                        <FormLabel className="font-medium text-base">
-                                          {option.label}
-                                        </FormLabel>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">
-                                        {option.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </FormItem>
-                              );
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              padding: 16,
+                              borderRadius: 8,
+                              border: `1px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
+                              backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer'
                             }}
-                          />
+                            onClick={() => {
+                              const newValue = isSelected
+                                ? field.value?.filter((value) => value !== option.id)
+                                : [...(field.value || []), option.id];
+                              field.onChange(newValue);
+                            }}
+                          >
+                            <Group gap="sm" align="flex-start">
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => {
+                                  const newValue = isSelected
+                                    ? field.value?.filter((value) => value !== option.id)
+                                    : [...(field.value || []), option.id];
+                                  field.onChange(newValue);
+                                }}
+                                mt={4}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <Group gap="xs">
+                                  <IconComponent size={16} color="#3b82f6" />
+                                  <Text fw={500} size="md">{option.label}</Text>
+                                </Group>
+                                <Text size="xs" c="dimmed">
+                                  {option.description}
+                                </Text>
+                              </div>
+                            </Group>
+                          </div>
                         );
                       })}
-                    </div>
-                    <FormMessage className="mt-2" />
-                  </FormItem>
+                    </Stack>
+                    {errors.dataTypes && (
+                      <Text size="sm" c="red" mt="xs">{errors.dataTypes.message}</Text>
+                    )}
+                  </div>
                 )}
               />
             )}
-            
+
+            {/* Document Upload */}
             {uploadMode === 'documents' && (
-              <FormField
-                control={form.control}
+              <Controller
                 name="documents"
+                control={control}
                 render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                  <div>
+                    <Group gap="sm" mb="xs">
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}>
                         2
                       </div>
-                      <FormLabel className="text-lg font-semibold flex items-center">
-                        <FileText className="h-4 w-4 mr-2 text-primary" />
-                        Upload Medical Documents
-                      </FormLabel>
-                    </div>
-                    <FormDescription className="mb-2">
+                      <Group gap="xs">
+                        <FileText size={16} color="#3b82f6" />
+                        <Text size="lg" fw={600}>Upload Medical Documents</Text>
+                      </Group>
+                    </Group>
+                    <Text size="sm" c="dimmed" mb="sm">
                       Upload medical documents, reports, or images to share securely
-                    </FormDescription>
-                    <FormControl>
-                      <FileUpload
-                        onChange={(files) => {
-                          setUploadedFiles(files);
-                          field.onChange(files);
-                        }}
-                        value={uploadedFiles}
-                        multiple={true}
-                        maxFiles={5}
-                        maxSize={20} // 20MB
-                        accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                        className="mt-2 border-2 border-dashed rounded-lg p-6 bg-muted/20"
-                      />
-                    </FormControl>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    </Text>
+                    <FileUpload
+                      onChange={(files: File[]) => {
+                        setUploadedFiles(files);
+                        field.onChange(files);
+                      }}
+                      value={uploadedFiles}
+                      multiple={true}
+                      maxFiles={5}
+                      maxSize={20} // 20MB
+                      accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                    />
+                    <Group gap="xs" mt="sm">
                       {uploadedFiles.map((file, index) => (
-                        <div key={index} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center">
-                          <FileText className="h-3 w-3 mr-1" />
+                        <Badge
+                          key={index}
+                          variant="light"
+                          color="blue"
+                          leftSection={<FileText size={12} />}
+                        >
                           {file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}
-                          <span className="ml-1 text-muted-foreground">
+                          <Text span size="xs" c="dimmed" ml={4}>
                             ({(file.size / 1024).toFixed(0)} KB)
-                          </span>
-                        </div>
+                          </Text>
+                        </Badge>
                       ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
+                    </Group>
+                    {errors.documents && (
+                      <Text size="sm" c="red" mt="xs">{errors.documents.message}</Text>
+                    )}
+                  </div>
                 )}
               />
             )}
 
-            <FormField
-              control={form.control}
+            {/* Duration Selection */}
+            <Controller
               name="duration"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                <div>
+                  <Group gap="sm" mb="xs">
+                    <div style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 14
+                    }}>
                       3
                     </div>
-                    <FormLabel className="text-lg font-semibold flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-primary" />
-                      Access Duration
-                    </FormLabel>
-                  </div>
-                  <FormDescription className="mb-2">
+                    <Group gap="xs">
+                      <Clock size={16} color="#3b82f6" />
+                      <Text size="lg" fw={600}>Access Duration</Text>
+                    </Group>
+                  </Group>
+                  <Text size="sm" c="dimmed" mb="sm">
                     Set how long the recipient will have access to your data
-                  </FormDescription>
+                  </Text>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select duration" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {durationOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    {...field}
+                    data={durationOptions}
+                    placeholder="Select duration"
+                    styles={{
+                      input: { height: 44 }
+                    }}
+                  />
+                  {errors.duration && (
+                    <Text size="sm" c="red" mt="xs">{errors.duration.message}</Text>
+                  )}
+                </div>
               )}
             />
 
-            <FormField
-              control={form.control}
+            {/* Password Option */}
+            <Controller
               name="usePassword"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                <div>
+                  <Group gap="sm" mb="sm">
+                    <div style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 14
+                    }}>
                       4
                     </div>
-                    <FormLabel className="text-lg font-semibold">Security Options</FormLabel>
-                  </div>
-                  <div className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-lg bg-muted/30">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="mt-1"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="font-medium flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-primary" />
-                        Require password for access
-                      </FormLabel>
-                      <FormDescription>
+                    <Text size="lg" fw={600}>Security Options</Text>
+                  </Group>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    padding: 16,
+                    borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                  }}>
+                    <Checkbox
+                      checked={field.value}
+                      onChange={field.onChange}
+                      mt={4}
+                    />
+                    <div style={{ marginLeft: 12 }}>
+                      <Group gap="xs">
+                        <Shield size={16} color="#3b82f6" />
+                        <Text fw={500}>Require password for access</Text>
+                      </Group>
+                      <Text size="sm" c="dimmed">
                         Add an extra layer of security with a password. You'll need to share this password separately with the recipient.
-                      </FormDescription>
+                      </Text>
                     </div>
                   </div>
-                </FormItem>
+                </div>
               )}
             />
 
+            {/* Password Input */}
             {usePassword && (
-              <FormField
-                control={form.control}
+              <Controller
                 name="password"
+                control={control}
                 render={({ field }) => (
-                  <FormItem className="bg-muted/20 p-4 rounded-lg border border-dashed">
-                    <FormLabel className="text-base font-semibold">Set Access Password</FormLabel>
-                    <FormDescription className="mb-2">
+                  <div style={{
+                    padding: 16,
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    border: '1px dashed #e5e7eb'
+                  }}>
+                    <Text size="md" fw={600} mb="xs">Set Access Password</Text>
+                    <Text size="sm" c="dimmed" mb="sm">
                       Create a password that the recipient will need to access your data
-                    </FormDescription>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="Enter a secure password (min. 6 characters)"
-                          className="pr-10"
-                          {...field}
-                        />
-                      </FormControl>
-                      <Shield className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
-                    </div>
-                    <FormDescription className="mt-2 text-amber-600 flex items-center">
-                      <Info className="h-4 w-4 mr-2" />
-                      You must share this password with the recipient separately
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                    </Text>
+                    <PasswordInput
+                      {...field}
+                      placeholder="Enter a secure password (min. 6 characters)"
+                      style={{ maxWidth: 400 }}
+                    />
+                    <Group gap="xs" mt="sm">
+                      <Info size={16} color="#d97706" />
+                      <Text size="sm" c="orange-7">You must share this password with the recipient separately</Text>
+                    </Group>
+                    {errors.password && (
+                      <Text size="sm" c="red" mt="xs">{errors.password.message}</Text>
+                    )}
+                  </div>
                 )}
               />
             )}
 
-            <FormField
-              control={form.control}
+            {/* Terms Acceptance */}
+            <Controller
               name="termsAccepted"
+              control={control}
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-6">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="mt-1"
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      I understand and agree to share my medical data
-                    </FormLabel>
-                    <FormDescription>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', marginTop: 24 }}>
+                  <Checkbox
+                    checked={field.value}
+                    onChange={field.onChange}
+                    mt={4}
+                  />
+                  <div style={{ marginLeft: 12 }}>
+                    <Text>I understand and agree to share my medical data</Text>
+                    <Text size="sm" c="dimmed">
                       By checking this box, you confirm that you understand how your data will be shared and accessed
-                    </FormDescription>
+                    </Text>
                   </div>
-                </FormItem>
+                </div>
               )}
             />
 
+            {/* Error Display */}
             {error && (
-              <div className="p-5 rounded-lg bg-destructive/10 border-2 border-destructive/20 text-destructive flex items-start space-x-3 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                <AlertCircle className="h-6 w-6 shrink-0 mt-0.5 flex-none" />
-                <div className="flex-1">
-                  <p className="font-semibold text-base mb-1">Error sharing data</p>
-                  <p className="text-sm opacity-90">{error}</p>
-                </div>
-              </div>
+              <Alert
+                color="red"
+                icon={<AlertCircle size={24} />}
+                title="Error sharing data"
+              >
+                {error}
+              </Alert>
             )}
 
-            <div className="flex gap-4 mt-8 pt-4 border-t">
+            {/* Submit Buttons */}
+            <Group gap="md" mt="xl" pt="md" style={{ borderTop: '1px solid #e5e7eb' }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={resetForm}
                 disabled={isSubmitting}
-                className="flex-none px-6"
-                size="lg"
+                style={{ paddingLeft: 24, paddingRight: 24 }}
               >
                 Reset Form
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-                size="lg"
+                style={{
+                  flex: 1,
+                  paddingTop: 16,
+                  paddingBottom: 16,
+                  background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)'
+                }}
+                leftSection={isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Shield size={20} />}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 size={20} className="animate-spin" style={{ marginRight: 8 }} />
                     Processing your request...
                   </>
                 ) : (
                   <>
-                    <Shield className="mr-2 h-5 w-5" />
+                    <Shield size={20} style={{ marginRight: 8 }} />
                     Share {uploadMode === 'documents' ? 'Documents' : 'Medical Data'} Securely
                   </>
                 )}
               </Button>
-            </div>
-            
+            </Group>
+
+            {/* Progress Display */}
             {isSubmitting && (
-              <div className="mt-6 p-6 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-base font-semibold flex items-center">
-                    <Upload className="h-5 w-5 mr-2 text-primary animate-pulse" />
-                    {uploadStage}
-                  </p>
-                  <span className="text-sm font-medium text-primary">{uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground">
+              <div style={{
+                marginTop: 24,
+                padding: 24,
+                borderRadius: 8,
+                background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
+                border: '2px solid rgba(59, 130, 246, 0.2)'
+              }}>
+                <Group justify="space-between" mb="sm">
+                  <Group gap="sm">
+                    <Upload size={20} color="#3b82f6" className="animate-pulse" />
+                    <Text size="md" fw={600}>{uploadStage}</Text>
+                  </Group>
+                  <Text size="sm" fw={500} c="blue">{uploadProgress}%</Text>
+                </Group>
+                <Progress value={uploadProgress} size="sm" color="blue" />
+                <Text size="xs" c="dimmed" mt="sm">
                   Please wait while we securely encrypt and upload your data. This may take a moment depending on the amount of data being shared.
-                </p>
+                </Text>
               </div>
             )}
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-4 w-full border-t pt-6">
-        <div className="flex justify-between w-full items-center">
-          <div className="flex items-center space-x-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <p className="text-sm text-muted-foreground">
+          </Stack>
+        </form>
+      </Card.Section>
+
+      <Card.Section p="xl" style={{ borderTop: '1px solid #e5e7eb' }}>
+        <Group justify="space-between">
+          <Group gap="xs">
+            <Shield size={16} color="#3b82f6" />
+            <Text size="sm" c="dimmed">
               Your {uploadMode === 'documents' ? 'documents' : 'data'} will be encrypted and stored securely with blockchain-based access control
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+            </Text>
+          </Group>
+          <Button
+            variant="subtle"
+            size="xs"
             onClick={() => setShowLogs(!showLogs)}
-            className="text-xs flex items-center gap-1"
+            leftSection={<Info size={12} />}
           >
-            <Info className="h-3 w-3" />
             {showLogs ? 'Hide Technical Logs' : 'Show Technical Logs'}
           </Button>
-        </div>
-        
+        </Group>
+
         {showLogs && (
-          <div className="w-full">
-            <div className="bg-black text-green-400 p-4 rounded font-mono text-xs h-64 overflow-y-auto">
-              {logs.length > 0 ? (
-                logs.map((log, index) => <div key={index}>{log}</div>)
-              ) : (
-                <p>No logs yet. Submit the form to see logs.</p>
-              )}
-              <div ref={logsEndRef} />
-            </div>
+          <div style={{
+            marginTop: 16,
+            backgroundColor: '#000',
+            color: '#4ade80',
+            padding: 16,
+            borderRadius: 8,
+            fontFamily: 'monospace',
+            fontSize: 12,
+            maxHeight: 256,
+            overflowY: 'auto'
+          }}>
+            {logs.length > 0 ? (
+              logs.map((log, index) => <div key={index}>{log}</div>)
+            ) : (
+              <p style={{ color: '#666' }}>No logs yet. Submit the form to see logs.</p>
+            )}
+            <div ref={logsEndRef} />
           </div>
         )}
-      </CardFooter>
+      </Card.Section>
     </Card>
   );
 };

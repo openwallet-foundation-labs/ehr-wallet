@@ -6,9 +6,8 @@ import { Sidebar } from "./Sidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileNav } from "./MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMediaQuery } from "@/hooks/use-media-query";
-import { TouchSwipe } from "@/components/ui/touch-swipe";
 import SyncManager from "@/components/SyncManager";
+import { Box, Flex, AppShell } from "@mantine/core";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -18,9 +17,8 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
-  const isTablet = useMediaQuery({ query: "(min-width: 768px)" });
   const router = useRouter();
-  
+
   // Set sidebar default state based on screen size - always open on desktop
   useEffect(() => {
     // Only close on mobile, keep open on desktop
@@ -30,7 +28,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       setSidebarOpen(true);
     }
   }, [isMobile]);
-  
+
   // Store sidebar state in localStorage to persist across navigation
   useEffect(() => {
     // Only store for desktop view
@@ -38,7 +36,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
     }
   }, [sidebarOpen, isMobile]);
-  
+
   // Restore sidebar state from localStorage on initial load
   useEffect(() => {
     if (typeof window !== 'undefined' && !isMobile) {
@@ -52,82 +50,94 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       }
     }
   }, [isMobile]);
-  
+
   // Prevent sidebar from collapsing during page transitions
   useEffect(() => {
     const handleRouteChangeStart = () => {
       // Don't close sidebar on route change
       // We're intentionally not modifying the state here
     };
-    
+
     router.events.on('routeChangeStart', handleRouteChangeStart);
-    
+
     return () => {
       router.events.off('routeChangeStart', handleRouteChangeStart);
     };
   }, [router]);
-  
+
   // On mobile, sidebar is closed by default
   const isOpen = isMobile ? false : sidebarOpen;
-  
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
-  
+
   const toggleMobileNav = () => {
     setMobileNavOpen(!mobileNavOpen);
   };
-  
-  // Swipe right to open menu functionality removed as requested
-  
+
   const handleSwipeLeft = () => {
     if (isMobile && mobileNavOpen) {
       setMobileNavOpen(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header 
-        toggleSidebar={toggleSidebar} 
+    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-body)' }}>
+      <Header
+        toggleSidebar={toggleSidebar}
         toggleMobileNav={toggleMobileNav}
         isMobileNavOpen={mobileNavOpen}
       />
-      
+
       {/* Mobile Navigation Drawer - only rendered when open */}
       {isMobile && (
-        <MobileNav 
-          isOpen={mobileNavOpen} 
-          onClose={() => setMobileNavOpen(false)} 
+        <MobileNav
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
         />
       )}
-      
-      <TouchSwipe 
-        onSwipeLeft={handleSwipeLeft}
-        className="min-h-[calc(100vh-4rem)]"
+
+      <Flex
+        onTouchStart={(e) => {
+          // Simple swipe detection for mobile
+          if (isMobile) {
+            const touchStartX = e.touches[0].clientX;
+            const handleTouchEnd = (e: TouchEvent) => {
+              const touchEndX = e.changedTouches[0].clientX;
+              if (touchStartX - touchEndX > 50) {
+                handleSwipeLeft();
+              }
+              document.removeEventListener('touchend', handleTouchEnd);
+            };
+            document.addEventListener('touchend', handleTouchEnd);
+          }
+        }}
+        style={{ minHeight: 'calc(100vh - 64px)', width: '100%' }}
       >
-        <div className="flex flex-col md:flex-row min-h-[calc(100vh-4rem)] w-full">
-          {/* Desktop Sidebar - hidden on mobile */}
-          {!isMobile && (
-            <Sidebar isOpen={isOpen} onClose={() => setSidebarOpen(false)} />
-          )}
-          
-          <main 
-            className={`
-              flex-1 p-4 md:p-6 overflow-y-auto transition-all duration-300
-              ${isMobile ? 'pb-20' : ''}
-            `}
-          >
-            {children}
-          </main>
-        </div>
-      </TouchSwipe>
-      
+        {/* Desktop Sidebar - hidden on mobile */}
+        {!isMobile && (
+          <Sidebar isOpen={isOpen} onClose={() => setSidebarOpen(false)} />
+        )}
+
+        <Box
+          style={{
+            flex: 1,
+            padding: '16px',
+            overflowY: 'auto',
+            transition: 'all 300ms',
+            paddingBottom: isMobile ? 80 : undefined,
+          }}
+        >
+          {children}
+        </Box>
+      </Flex>
+
       {/* Mobile Bottom Navigation - only visible on mobile */}
       {isMobile && <MobileBottomNav />}
-      
+
       {/* Sync Manager for offline data synchronization */}
       <SyncManager />
-    </div>
+    </Box>
   );
 };

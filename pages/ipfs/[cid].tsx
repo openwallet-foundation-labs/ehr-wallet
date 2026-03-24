@@ -3,13 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getFromIpfs, decryptData } from '@/lib/web3/ipfs';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button, Card, CardSection, TextInput, Text, Title, Modal, Alert, Loader } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { Loader2, FileText, Download, Lock, Eye } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Force dynamic rendering to avoid build-time IPFS module loading
 export const dynamic = 'force-dynamic';
@@ -17,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default function IpfsViewerPage() {
   const router = useRouter();
   const { cid } = router.query;
-  
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +24,14 @@ export default function IpfsViewerPage() {
 
   useEffect(() => {
     if (!cid || typeof cid !== 'string') return;
-    
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const fetchedData = await getFromIpfs(cid);
-        
+
         // Check if the data is encrypted
         if (typeof fetchedData === 'string' && fetchedData.startsWith('eyJ')) {
           setIsEncrypted(true);
@@ -50,14 +46,14 @@ export default function IpfsViewerPage() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [cid]);
 
   const handleDecrypt = async () => {
     if (!cid || typeof cid !== 'string') return;
     setDecryptError(null);
-    
+
     try {
       const encryptedData = await getFromIpfs(cid);
       const decrypted = await decryptData(encryptedData, password);
@@ -71,54 +67,54 @@ export default function IpfsViewerPage() {
 
   const renderDocumentPreview = (file: any) => {
     if (!file) return null;
-    
+
     const isImage = file.type?.startsWith('image/');
     const isPdf = file.type === 'application/pdf';
-    
+
     if (isImage) {
       return (
-        <div className="flex flex-col items-center">
-          <img 
-            src={file.content} 
-            alt={file.name} 
-            className="max-w-full max-h-96 object-contain rounded-md mb-2" 
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={file.content}
+            alt={file.name}
+            style={{ maxWidth: '100%', maxHeight: '24rem', objectFit: 'contain', borderRadius: '6px', marginBottom: '0.5rem' }}
           />
-          <p className="text-sm text-muted-foreground">{file.name}</p>
+          <Text size="sm" c="dimmed">{file.name}</Text>
         </div>
       );
     }
-    
+
     if (isPdf) {
       return (
-        <div className="flex flex-col items-center">
-          <div className="bg-muted p-8 rounded-md mb-2 flex flex-col items-center">
-            <FileText className="h-16 w-16 text-red-500 mb-2" />
-            <p className="text-sm font-medium">{file.name}</p>
-            <p className="text-xs text-muted-foreground">PDF Document</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ backgroundColor: 'var(--mantine-color-gray-1)', padding: '2rem', borderRadius: '6px', marginBottom: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <FileText size={64} color="#ef4444" style={{ marginBottom: '0.5rem' }} />
+            <Text size="sm" fw={500}>{file.name}</Text>
+            <Text size="xs" c="dimmed">PDF Document</Text>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => window.open(file.content, '_blank')}
-            className="mt-2"
+            mt="sm"
+            leftSection={<Eye size={16} />}
           >
-            <Eye className="h-4 w-4 mr-2" />
             View PDF
           </Button>
         </div>
       );
     }
-    
+
     return (
-      <div className="flex flex-col items-center">
-        <div className="bg-muted p-8 rounded-md mb-2 flex flex-col items-center">
-          <FileText className="h-16 w-16 text-blue-500 mb-2" />
-          <p className="text-sm font-medium">{file.name}</p>
-          <p className="text-xs text-muted-foreground">{file.type || 'Document'}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ backgroundColor: 'var(--mantine-color-gray-1)', padding: '2rem', borderRadius: '6px', marginBottom: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <FileText size={64} color="#3b82f6" style={{ marginBottom: '0.5rem' }} />
+          <Text size="sm" fw={500}>{file.name}</Text>
+          <Text size="xs" c="dimmed">{file.type || 'Document'}</Text>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => {
             // Create a download link for the file
             const link = document.createElement('a');
@@ -128,9 +124,9 @@ export default function IpfsViewerPage() {
             link.click();
             document.body.removeChild(link);
           }}
-          className="mt-2"
+          mt="sm"
+          leftSection={<Download size={16} />}
         >
-          <Download className="h-4 w-4 mr-2" />
           Download
         </Button>
       </div>
@@ -139,36 +135,36 @@ export default function IpfsViewerPage() {
 
   const renderContent = () => {
     if (!data) return null;
-    
+
     // Check if this is document data
     if (data.files && Array.isArray(data.files)) {
       return (
-        <div className="space-y-6">
-          <div className="bg-muted p-4 rounded-md">
-            <h3 className="text-sm font-medium mb-2">Shared by</h3>
-            <p className="text-xs text-muted-foreground">{data.createdBy || 'Unknown'}</p>
-            <p className="text-xs text-muted-foreground">Shared on {new Date(data.createdAt).toLocaleString()}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ backgroundColor: 'var(--mantine-color-gray-1)', padding: '1rem', borderRadius: '6px' }}>
+            <Text size="sm" fw={500} mb="xs">Shared by</Text>
+            <Text size="xs" c="dimmed">{data.createdBy || 'Unknown'}</Text>
+            <Text size="xs" c="dimmed">Shared on {new Date(data.createdAt).toLocaleString()}</Text>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
             {data.files.map((file: any, index: number) => (
-              <Card key={index}>
-                <CardContent className="pt-6">
+              <Card key={index} shadow="sm" padding="lg" radius="md" withBorder>
+                <CardSection p="md">
                   {renderDocumentPreview(file)}
-                </CardContent>
+                </CardSection>
               </Card>
             ))}
           </div>
         </div>
       );
     }
-    
+
     // Regular data
     return (
-      <div className="space-y-4">
-        <div className="bg-muted p-4 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Shared Data</h3>
-          <pre className="text-xs overflow-auto p-2 bg-background rounded">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ backgroundColor: 'var(--mantine-color-gray-1)', padding: '1rem', borderRadius: '6px' }}>
+          <Text size="sm" fw={500} mb="xs">Shared Data</Text>
+          <pre style={{ fontSize: '0.75rem', overflow: 'auto', padding: '0.5rem', backgroundColor: 'var(--mantine-color-gray-0)', borderRadius: '4px' }}>
             {JSON.stringify(data, null, 2)}
           </pre>
         </div>
@@ -178,60 +174,51 @@ export default function IpfsViewerPage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Shared Medical Data</h1>
-      
+      <Title order={1} mb="xl">Shared Medical Data</Title>
+
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin mb-4" />
-            <p>Loading data from IPFS...</p>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Loader size="lg" mb="md" />
+            <Text>Loading data from IPFS...</Text>
           </div>
         </div>
       ) : error ? (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert icon={<Loader2 size={16} />} title="Error" color="red" mb="xl">
+          {error}
         </Alert>
       ) : (
-        <div className="space-y-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {renderContent()}
         </div>
       )}
-      
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Password Protected Data</DialogTitle>
-            <DialogDescription>
-              This data is password protected. Enter the password to view it.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            
-            {decryptError && (
-              <p className="text-sm text-destructive">{decryptError}</p>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={handleDecrypt} disabled={!password}>
-              <Lock className="h-4 w-4 mr-2" />
-              Decrypt
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+      <Modal
+        opened={showPasswordDialog}
+        onClose={() => setShowPasswordDialog(false)}
+        title={<Title order={3}>Password Protected Data</Title>}
+      >
+        <Text size="sm" c="dimmed" mb="md">
+          This data is password protected. Enter the password to view it.
+        </Text>
+
+        <TextInput
+          label="Password"
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          mb="md"
+        />
+
+        {decryptError && (
+          <Text size="sm" c="red" mb="md">{decryptError}</Text>
+        )}
+
+        <Button onClick={handleDecrypt} disabled={!password} leftSection={<Lock size={16} />}>
+          Decrypt
+        </Button>
+      </Modal>
     </div>
   );
 }

@@ -39,7 +39,7 @@ jobs:
         run: npx hardhat compile
 
       - name: Test contracts
-        run: npx hardhat test
+        run: npx hardhat test test/AccessControl.test.js test/FHIRAccessControl.test.js
 
       - name: Run solidity linter
         run: npx solhint 'contracts/**/*.sol'

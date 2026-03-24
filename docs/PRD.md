@@ -11,13 +11,14 @@ EHR Wallet is a decentralized application that empowers patients to securely own
 ### Implemented Features
 
 - **Patient Authentication** - Dual-mode (traditional + Web3/Polygon wallet)
-- **Patient Dashboard** - Central hub with tabs for Shared Data, Health Data, Appointments
+- **Patient Dashboard** - Central hub with tabs for Shared Data, Health Data, Appointments, Medical Records
 - **Data Sharing** - Multi-step wizard with time-limited access and optional password protection
 - **Access Logs** - Comprehensive record of who accessed data, when, and IPFS pin status
-- **Blockchain Integration** - Polygon smart contracts for access control with IPFS storage
+- **Blockchain Integration** - Polygon Amoy smart contracts for access control with IPFS storage
 - **MetaMask Wallet** - Integration for blockchain interactions
 - **PWA Support** - Installable progressive web app with offline capabilities
-- **FHIR R4 Support** - Full HL7 FHIR R4 implementation with Patient, Encounter, Appointment resources
+- **FHIR R4 Support** - Full HL7 FHIR R4 implementation with Patient, Encounter resources
+- **Mantine UI** - Complete migration from shadcn/ui to Mantine UI components
 
 ---
 
@@ -76,9 +77,9 @@ EHR Wallet is a decentralized application that empowers patients to securely own
 
 | Feature | Status | Priority |
 |---------|--------|----------|
-| FHIR Expansion (Observation, Condition, MedicationRequest) | Foundation Done | 🟡 Medium |
+| FHIR Expansion (Observation, Condition, MedicationRequest) | Not Started | 🟡 Medium |
 | EHR System Integration (Epic, Cerner) | Not Started | 🟡 Medium |
-| Multi-Chain Support | Polygon Done | 🟡 Medium |
+| Multi-Chain Support | Not Started | 🟡 Medium |
 
 **Timeline:** Q4 2025
 
@@ -89,6 +90,7 @@ EHR Wallet is a decentralized application that empowers patients to securely own
 - AllergyIntolerance
 - Immunization records
 - DocumentReference
+- Appointment (FHIR-based appointment management)
 
 #### EHR Integrations
 - Epic FHIR API integration
@@ -124,12 +126,17 @@ EHR Wallet is a decentralized application that empowers patients to securely own
 
 ## Completed Items
 
-- ✅ FHIR R4 Support (Patient, Encounter, Appointment)
-- ✅ Polygon Network Integration ( migrated from Ethereum)
+- ✅ FHIR R4 Support (Patient, Encounter)
+- ✅ Polygon Network Integration (migrated from Ethereum)
+- ✅ Polygon Amoy Testnet Deployment
 - ✅ PWA with offline support
 - ✅ MetaMask wallet integration
 - ✅ IPFS storage with Pinata/Helia
 - ✅ Basic access control with time-limited grants
+- ✅ Mantine UI Migration (complete)
+- ✅ Inter Font Typography
+- ✅ Dashboard Tabs with Icons
+- ✅ Wallet Address Show/Hide Toggle
 
 ---
 
@@ -151,8 +158,9 @@ EHR Wallet is a decentralized application that empowers patients to securely own
 - [Cost Optimization Architecture](./COST_OPTIMIZATION_ARCHITECTURE.md)
 - [Security Policy](../SECURITY.md)
 - [Contributing Guide](../CONTRIBUTING.md)
+- [Walkthrough Screenshots](./WALKTHROUGH.md)
 
 ---
 
 **Last Updated:** March 2026
-**Version:** 1.0
+**Version:** 1.1

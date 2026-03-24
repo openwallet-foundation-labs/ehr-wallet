@@ -136,7 +136,6 @@ let initPromise: Promise<ImagingHubDB | MockDB> | null = null;
 export function getDb(): ImagingHubDB | MockDB {
   if (typeof window === 'undefined') {
     // Server-side: return mock DB
-    console.log('Running in server environment, using mock DB');
     return new MockDB();
   }
   
@@ -161,13 +160,11 @@ export const db = typeof window === 'undefined' ? new MockDB() as any : new Imag
 export async function initDatabase() {
   // Check if we're in a browser environment
   if (typeof window === 'undefined') {
-    console.log('Running in server environment, skipping Dexie initialization');
     return getDb();
   }
   
   // If initialization is already in progress, return the existing promise
   if (initPromise) {
-    console.log('Database initialization already in progress, waiting...');
     return initPromise;
   }
   
@@ -179,7 +176,6 @@ export async function initDatabase() {
       
       // Attempt to open the database
       await database.open();
-      console.log('Dexie database initialized successfully');
       return database;
     } catch (error) {
       console.error('Failed to initialize Dexie database:', error);

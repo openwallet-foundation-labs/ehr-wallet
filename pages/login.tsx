@@ -1,31 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { hybridSignIn, hybridWalletLogin } from '@/lib/auth-compatibility';
 import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
 import Link from 'next/link';
-import { authenticateOffline } from '@/lib/offline-auth';
 import { initDatabase } from '@/lib/db';
 import { seedOfflineDatabase } from '@/lib/seed-offline-db';
 import { useMetaMask } from '@/components/web3/MetaMaskProvider';
-
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { notifications } from '@mantine/notifications';
+import { Card, Text, Title, TextInput, PasswordInput, Button, Divider, Stack, Center, Loader, Box, Group } from '@mantine/core';
+import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 
 // Define the form schema
 const patientFormSchema = z.object({
@@ -43,21 +28,28 @@ export default function LoginPage() {
   const [initError, setInitError] = useState<string | null>(null);
   const [isMetaMaskLoading, setIsMetaMaskLoading] = useState(false);
   const [showEmailPasswordLogin, setShowEmailPasswordLogin] = useState(false);
-  
+  const [showWalletAddress, setShowWalletAddress] = useState(false);
+
+  // Form state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   // Get MetaMask context for wallet integration
-  const { isMetaMaskInstalled, currentAccount, connectWallet, isConnected, error: metaMaskError } = useMetaMask();
-  
+  const { isMetaMaskInstalled, currentAccount, connectWallet, networkName, error: metaMaskError } = useMetaMask();
+
   // Redirect if user is already authenticated
   useEffect(() => {
     if (session) {
       const callbackUrl = Array.isArray(router.query.callbackUrl)
         ? router.query.callbackUrl[0]
         : router.query.callbackUrl || '/';
-      
+
       router.push(callbackUrl);
     }
   }, [session, router]);
-  
+
   // Initialize the database and seed if needed
   useEffect(() => {
     async function initialize() {
@@ -71,33 +63,37 @@ export default function LoginPage() {
         setDbInitializing(false);
       }
     }
-    
+
     initialize();
   }, []);
 
-  // Initialize the patient form
-  const patientForm = useForm<PatientFormData>({
-    resolver: zodResolver(patientFormSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-
+  // Validate form
+  const validateForm = (): boolean => {
+    const result = patientFormSchema.safeParse({ email, password });
+    if (!result.success) {
+      const emailError = result.error.errors.find(e => e.path[0] === 'email');
+      const passwordError = result.error.errors.find(e => e.path[0] === 'password');
+      setEmailError(emailError?.message || null);
+      setPasswordError(passwordError?.message || null);
+      return false;
+    }
+    setEmailError(null);
+    setPasswordError(null);
+    return true;
+  };
 
   // Show loading state while database is initializing
   if (dbInitializing) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
-          <p>Initializing offline database...</p>
-        </div>
-      </div>
+      <Center h="100vh" bg="gray.0">
+        <Stack align="center" gap="md">
+          <Loader size="lg" />
+          <Text>Initializing offline database...</Text>
+        </Stack>
+      </Center>
     );
   }
-  
+
   // Handle MetaMask login
   const handleMetaMaskLogin = async () => {
     setIsMetaMaskLoading(true);
@@ -108,235 +104,253 @@ export default function LoginPage() {
         const callbackUrl = Array.isArray(router.query.callbackUrl)
           ? router.query.callbackUrl[0]
           : router.query.callbackUrl || '/patient/dashboard';
-        
+
         const result = await hybridWalletLogin(account, {
           redirect: true,
           callbackUrl
         });
-        
+
         if (result.success) {
-          toast.success('Successfully connected with MetaMask');
+          notifications.show({
+            title: 'Success',
+            message: 'Successfully connected with MetaMask',
+            color: 'green',
+          });
           // The hybridWalletLogin will handle redirection
         } else {
-          toast.error('Failed to authenticate with MetaMask');
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to authenticate with MetaMask',
+            color: 'red',
+          });
         }
       } else {
-        toast.error('Failed to connect with MetaMask');
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to connect with MetaMask',
+          color: 'red',
+        });
       }
     } catch (error) {
       console.error('MetaMask login error:', error);
-      toast.error('An error occurred during MetaMask login');
+      notifications.show({
+        title: 'Error',
+        message: 'An error occurred during MetaMask login',
+        color: 'red',
+      });
     } finally {
       setIsMetaMaskLoading(false);
     }
   };
 
+  // Handle email/password login
+  const handleEmailPasswordLogin = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const callbackUrl = Array.isArray(router.query.callbackUrl)
+        ? router.query.callbackUrl[0]
+        : router.query.callbackUrl || '/patient/dashboard';
+
+      const result = await hybridSignIn(email, password, {
+        redirect: true,
+        callbackUrl,
+        role: 'PATIENT'
+      });
+
+      if (!result.success) {
+        notifications.show({
+          title: 'Error',
+          message: 'Invalid email or password',
+          color: 'red',
+        });
+        setIsLoading(false);
+      }
+      // The hybridSignIn handles redirection internally
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'An error occurred during login',
+        color: 'red',
+      });
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen w-full items-center justify-center bg-background">
-      <Card className="w-full max-w-md mb-auto mt-auto">
-        <CardHeader className="space-y-1 text-center">
-          {/* <div className="flex justify-center mb-4">
-            <Image 
-              src="/default-monochrome.svg" 
-              alt="GlobalRad Logo" 
-              width={32} 
-              height={32} 
-              className="h-6 w-auto" 
-            />
-          </div> */}
-          <CardTitle className="text-2xl font-semibold">Login</CardTitle>
-          {initError && <p className="text-red-500 text-sm">{initError}</p>}
-        </CardHeader>
-        <CardContent>
-          <div className="w-full">
-            <div className="text-center mb-4">
-              <h2 className="text-lg font-semibold">Patient Login</h2>
-              <p className="text-sm text-muted-foreground">Sign in to access your medical records</p>
-            </div>
-            
-            {/* Patient Login Content */}
-              <div className="space-y-4">
+    <Box style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Card shadow="sm" padding="lg" radius="md" withBorder w="100%" maw={420} mb="auto" mt="auto">
+        <Stack gap="md">
+          <Center>
+            <Title order={1} ta="center">Login</Title>
+          </Center>
 
-                {/* Web3 Wallet Login - First */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-3">Web3 Wallet Login</h3>
-                  <p className="text-xs text-muted-foreground mb-4">Connect with your Ethereum wallet to access your medical records</p>
-                  
-                  {/* MetaMask Login Button */}
-                  <Button 
-                    onClick={handleMetaMaskLogin} 
-                    className="w-full flex items-center justify-center gap-2" 
-                    disabled={!isMetaMaskInstalled || isMetaMaskLoading}
-                    variant="outline"
+          {initError && (
+            <Text c="red" size="sm" ta="center">{initError}</Text>
+          )}
+
+          <Stack gap="md">
+            <Stack gap="xs">
+              <Title order={3}>Patient Login</Title>
+              <Text size="sm" c="dimmed">Sign in to access your medical records</Text>
+            </Stack>
+
+            {/* Web3 Wallet Login - First */}
+            <Box>
+              <Title order={4}>Web3 Wallet Login</Title>
+              <Text size="xs" c="dimmed" mb="sm">Connect with your wallet to access your medical records</Text>
+
+              {/* MetaMask Login Button */}
+              <Button
+                onClick={handleMetaMaskLogin}
+                fullWidth
+                variant="outline"
+                disabled={!isMetaMaskInstalled || isMetaMaskLoading}
+                leftSection={isMetaMaskLoading ? <Loader size="xs" color="blue" /> : <Image src="/metamask-fox.svg" alt="MetaMask" width={24} height={24} />}
+              >
+                {isMetaMaskLoading ? 'Connecting...' : 'Connect with MetaMask'}
+              </Button>
+
+              {/* Display current account if connected */}
+              {currentAccount && (
+                <Box ta="center" mt="xs">
+                  <Text size="sm" c="dimmed">Connected account:</Text>
+                  <Group justify="center" gap="xs">
+                    <Text size="xs" ff="monospace" style={{ wordBreak: 'break-all' }}>
+                      {showWalletAddress ? currentAccount : `${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}`}
+                    </Text>
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      onClick={() => setShowWalletAddress(!showWalletAddress)}
+                      style={{ padding: 4, minWidth: 'auto' }}
+                    >
+                      {showWalletAddress ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </Button>
+                  </Group>
+                </Box>
+              )}
+
+              {/* MetaMask not installed warning */}
+              {!isMetaMaskInstalled && (
+                <Box ta="center" mt="xs">
+                  <Text size="sm" c="yellow.7">MetaMask extension is not installed. Please install it to continue.</Text>
+                  <a
+                    href="https://metamask.io/download/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--mantine-color-blue-6)', textDecoration: 'underline' }}
                   >
-                    {isMetaMaskLoading ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                        <span>Connecting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Image src="/metamask-fox.svg" alt="MetaMask" width={24} height={24} />
-                        <span>Connect with MetaMask</span>
-                      </>
-                    )}
+                    Download MetaMask
+                  </a>
+                </Box>
+              )}
+
+              {/* Display MetaMask error if any */}
+              {metaMaskError && (
+                <Box ta="center" mt="xs">
+                  <Text size="sm" c="red">{metaMaskError}</Text>
+                </Box>
+              )}
+
+              <Box ta="center" mt="xs" p="xs" bg="gray.1" style={{ borderRadius: 4 }}>
+                <Text size="xs" c="dimmed">Current network: {networkName}</Text>
+                {currentAccount && (
+                  <Text size="xs" c="dimmed" mt={4}>Wallet connected</Text>
+                )}
+              </Box>
+            </Box>
+
+            <Divider label="Or continue with" labelPosition="center" />
+
+            {/* Email/Password Login Form - Collapsible */}
+            <Box>
+              <Button
+                variant="subtle"
+                fullWidth
+                onClick={() => setShowEmailPasswordLogin(!showEmailPasswordLogin)}
+                rightSection={showEmailPasswordLogin ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                styles={{
+                  root: {
+                    justifyContent: 'space-between',
+                    padding: '8px',
+                  }
+                }}
+              >
+                Email & Password Login
+              </Button>
+
+              {showEmailPasswordLogin && (
+                <Stack gap="sm" mt="md">
+                  <TextInput
+                    label="Email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    error={emailError}
+                    disabled={isLoading}
+                  />
+                  <PasswordInput
+                    label="Password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    error={passwordError}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={handleEmailPasswordLogin}
+                    fullWidth
+                    loading={isLoading}
+                  >
+                    {isLoading ? 'Logging in...' : 'Login'}
                   </Button>
-                  
-                  {/* Display current account if connected */}
-                  {currentAccount && (
-                    <div className="mt-2 text-center text-sm">
-                      <p className="text-muted-foreground">Connected account:</p>
-                      <p className="font-mono text-xs break-all">{currentAccount}</p>
-                    </div>
-                  )}
-                  
-                  {/* MetaMask not installed warning */}
-                  {!isMetaMaskInstalled && (
-                    <div className="mt-2 text-center text-sm text-amber-500">
-                      <p>MetaMask extension is not installed. Please install it to continue.</p>
-                      <a 
-                        href="https://metamask.io/download/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline mt-1 inline-block"
-                      >
-                        Download MetaMask
-                      </a>
-                    </div>
-                  )}
-                  
-                  {/* Display MetaMask error if any */}
-                  {metaMaskError && (
-                    <div className="mt-2 text-center text-sm text-red-500">
-                      <p>{metaMaskError}</p>
-                    </div>
-                  )}
-                  
-                  <div className="mt-2 text-center text-xs text-muted-foreground bg-muted p-2 rounded">
-                    <p>For demo: use MetaMask with the Ethereum Sepolia testnet</p>
-                    <p className="mt-1">You can get test ETH from the <a href="https://sepoliafaucet.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sepolia Faucet</a></p>
-                  </div>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                {/* Email/Password Login Form - Collapsible */}
-                <div className="mb-2">
-                  <button 
-                    onClick={() => setShowEmailPasswordLogin(!showEmailPasswordLogin)}
-                    className="flex items-center justify-between w-full text-sm font-medium mb-3 p-2 rounded hover:bg-muted transition-colors"
-                    type="button"
-                  >
-                    <span>Email & Password Login</span>
-                    {showEmailPasswordLogin ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-                  
-                  {showEmailPasswordLogin && (
-                  <div className="mt-2 animate-in fade-in-50 slide-in-from-top-5 duration-300">
-                    <Form {...patientForm}>
-                    <form onSubmit={patientForm.handleSubmit(async (data) => {
-                      setIsLoading(true);
-                      
-                      try {
-                        // Use hybrid authentication that tries NextAuth first, then falls back to offline auth
-                        const callbackUrl = Array.isArray(router.query.callbackUrl)
-                          ? router.query.callbackUrl[0]
-                          : router.query.callbackUrl || '/patient/dashboard';
-                          
-                        const result = await hybridSignIn(data.email, data.password, {
-                          redirect: true,
-                          callbackUrl,
-                          role: 'PATIENT'
-                        });
-                        
-                        if (!result.success) {
-                          toast.error('Invalid email or password');
-                          setIsLoading(false);
-                        }
-                        // The hybridSignIn handles redirection internally
-                      } catch (error) {
-                        toast.error('An error occurred during login');
-                        console.error('Login error:', error);
-                        setIsLoading(false);
-                      }
-                    })} className="space-y-4">
-                      <FormField
-                        control={patientForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="email" 
-                                placeholder="name@example.com" 
-                                {...field} 
-                                disabled={isLoading}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={patientForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="••••••••" 
-                                {...field} 
-                                disabled={isLoading}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Logging in...' : 'Login'}
-                      </Button>
-                    </form>
-                  </Form>
-                  
-                  <div className="mt-2 text-center text-xs text-muted-foreground">
-                    <p>For demo: use patient@example.com / password</p>
-                  </div>
-                  </div>
-                  )}
-                </div>
-                
 
-              </div>
-          </div>
-        </CardContent>
-        {/* <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-center text-muted-foreground">
-            Don&apos;t have an account? Contact your administrator.
-          </div>
-        </CardFooter> */}
+                  <Text size="xs" c="dimmed" ta="center">For demo: use patient@example.com / password</Text>
+                </Stack>
+              )}
+            </Box>
+          </Stack>
+        </Stack>
       </Card>
-      
+
       {/* Footer */}
-      <footer className="w-full py-2 px-4 mt-4 border-t border-border bg-background flex justify-between items-center text-xs text-muted-foreground">
+      <Box
+        component="footer"
+        w="100%"
+        py="sm"
+        px="md"
+        mt="md"
+        style={{
+          borderTop: '1px solid var(--mantine-color-gray-3)',
+          backgroundColor: 'var(--mantine-color-gray-0)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '12px',
+          color: 'var(--mantine-color-gray-6)'
+        }}
+      >
         <div>
-          © {new Date().getFullYear()} TMC AI, LLC. All rights reserved.
+          &copy; {new Date().getFullYear()} TMC AI, LLC. All rights reserved.
         </div>
-        <div className="flex gap-4">
-          <Link href="/hipaa" className="hover:text-foreground transition-colors">
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <Link href="/hipaa" style={{ color: 'inherit', textDecoration: 'none' }}>
             HIPAA Compliance
           </Link>
-          <Link href="/privacy" className="hover:text-foreground transition-colors">
+          <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
             Privacy Policy
           </Link>
-          <Link href="/terms" className="hover:text-foreground transition-colors">
+          <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>
             Terms of Service
           </Link>
         </div>
-      </footer>
-    </div>
+      </Box>
+    </Box>
   );
 }

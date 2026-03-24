@@ -2,11 +2,8 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config({ path: ".env.local" });
 
-// Load environment variables - require WALLET_PRIVATE_KEY to be set
-const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
-if (!PRIVATE_KEY) {
-  throw new Error("WALLET_PRIVATE_KEY environment variable is required. Copy .env.example to .env.local and configure.");
-}
+// Load environment variables - WALLET_PRIVATE_KEY is optional for local testing
+const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY || "";
 const ETHEREUM_API_KEY = process.env.ETHEREUM_API_KEY || "";
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
@@ -23,8 +20,8 @@ module.exports = {
       }
     }
   },
-  // Default network set to Polygon Amoy testnet
-  defaultNetwork: "amoy",
+  // Default network - use hardhat for local testing
+  defaultNetwork: "hardhat",
   // Exclude Playwright tests from Hardhat test runner
   test: {
     exclude: ["test/playwright/**"],
@@ -43,30 +40,30 @@ module.exports = {
     },
     localhost: {
       url: "http://127.0.0.1:8545/",
-      accounts: [PRIVATE_KEY]
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : undefined
     },
     // Polygon testnet (Amoy - replaces deprecated Mumbai)
     amoy: {
       url: `https://polygon-amoy.g.alchemy.com/v2/${POLYGON_API_KEY}`,
-      accounts: [PRIVATE_KEY],
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : undefined,
       chainId: 80002,
       gasPrice: 35000000000 // 35 gwei
     },
     // Polygon mainnet
     polygon: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${POLYGON_API_KEY}`,
-      accounts: [PRIVATE_KEY],
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : undefined,
       chainId: 137,
       gasPrice: 35000000000 // 35 gwei
     },
     // Ethereum networks (fallback support)
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ETHEREUM_API_KEY}`,
-      accounts: [PRIVATE_KEY]
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : undefined
     },
     ethereum: {
       url: `https://eth-mainnet.g.alchemy.com/v2/${ETHEREUM_API_KEY}`,
-      accounts: [PRIVATE_KEY]
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : undefined
     }
   },
   etherscan: {

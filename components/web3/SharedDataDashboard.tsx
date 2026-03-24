@@ -2,57 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Card, Text, Button, Table, Badge, Group, Stack, ThemeIcon, Loader, Alert } from '@mantine/core';
 import { AlertCircle, Clock, ExternalLink, Plus, Trash, RefreshCw } from 'lucide-react';
-import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
 // Fetch shared records from the API
-const fetchSharedRecords = async (address?: string, forceRefresh = true) => {
+const fetchSharedRecords = async (address?: string) => {
   try {
-    // Add the address as a query parameter if provided
-    // Add a timestamp to force cache busting
     const timestamp = new Date().getTime();
-    const url = address 
-      ? `/api/shared-data?address=${address}&_t=${timestamp}` 
-      : `/api/shared-data?_t=${timestamp}`;
-    
-    console.log(`Fetching shared records from: ${url}`);
-    
+    const url = `/api/shared-data?_t=${timestamp}`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (address) {
+      headers['x-wallet-address'] = address;
+    }
+
     const response = await fetch(url, {
-      // Add cache: 'no-store' to prevent caching
       cache: 'no-store',
-      // Include credentials to send authentication cookies
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      // Add a timestamp to force a fresh request
-      ...(forceRefresh ? { next: { revalidate: 0 }, signal: AbortSignal.timeout(30000) } : {})
+      headers,
+      next: { revalidate: 0 },
+      signal: AbortSignal.timeout(30000)
     });
-    
+
     if (!response.ok) {
-      // Get more detailed error information if available
       let errorMessage = 'Failed to fetch shared data';
       try {
         const errorData = await response.json();
-        if (errorData && errorData.error) {
+        if (errorData?.error) {
           errorMessage = errorData.error;
         }
-      } catch (e) {
-        // If we can't parse the error response, use the default message
+      } catch {
+        // Use default message
       }
-      
+
       if (response.status === 401) {
-        throw new Error('Authentication required. Please ensure you are logged in and have connected your wallet.');
+        throw new Error('Authentication required. Please connect your wallet.');
       }
-      
+
       throw new Error(errorMessage);
     }
-    
+
     const data = await response.json();
     return data.map((record: any) => ({
       ...record,
@@ -60,7 +52,6 @@ const fetchSharedRecords = async (address?: string, forceRefresh = true) => {
       expiryTime: new Date(record.expiryTime)
     }));
   } catch (error) {
-    console.error('Error fetching shared records:', error);
     throw error;
   }
 };
@@ -75,34 +66,24 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSharedRecords = async (forceRefresh = true) => {
-    // If no ethereum address is provided, use a demo address for testing
+  const loadSharedRecords = async () => {
     const addressToUse = ethereumAddress || '0x123456789abcdef123456789abcdef123456789a';
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Clear any cached data first
-      if (forceRefresh) {
-        console.log('Forcing refresh of shared records');
-      }
-      
-      // Pass the Ethereum address to the fetch function
-      const records = await fetchSharedRecords(addressToUse, forceRefresh);
-      console.log('Fetched shared records:', records);
+      const records = await fetchSharedRecords(addressToUse);
 
       if (records && Array.isArray(records)) {
         setSharedRecords(records);
-        console.log(`Successfully loaded ${records.length} shared records`);
 
-        // Check for expiring shares (within 24 hours) and notify user
+        // Check for expiring shares (within 24 hours)
         const now = new Date();
         const expiringShares = records.filter((record: any) => {
           if (!record.isActive) return false;
           const expiryTime = new Date(record.expiryTime);
-          const timeUntilExpiry = expiryTime.getTime() - now.getTime();
-          const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
+          const hoursUntilExpiry = (expiryTime.getTime() - now.getTime()) / (1000 * 60 * 60);
           return hoursUntilExpiry > 0 && hoursUntilExpiry <= 24;
         });
 
@@ -112,11 +93,9 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
           });
         }
       } else {
-        console.error('Received invalid data format from API:', records);
         setSharedRecords([]);
       }
     } catch (err: any) {
-      console.error('Error loading shared records:', err);
       setError(err.message || 'Failed to load shared records');
       setSharedRecords([]);
     } finally {
@@ -125,28 +104,22 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
   };
 
   useEffect(() => {
-    // Load shared records on component mount
-    console.log('Loading shared records on component mount');
-    loadSharedRecords(true);
-    
-    // Add event listener for visibility change to refresh when tab becomes visible
+    loadSharedRecords();
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('Tab became visible, refreshing data');
-        loadSharedRecords(true);
+        loadSharedRecords();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Add event listener for focus to refresh when window regains focus
+
     const handleFocus = () => {
-      console.log('Window regained focus, refreshing data');
-      loadSharedRecords(true);
+      loadSharedRecords();
     };
-    
+
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
@@ -167,37 +140,28 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
   // Revoke access by setting isActive to false
   const handleRevokeAccess = async (recordId: string) => {
     try {
-      console.log(`Attempting to revoke access for record ID: ${recordId}`);
-      
-      // First, check if the record exists
       const checkResponse = await fetch(`/api/shared-data/${recordId}`, {
         method: 'GET',
       });
-      
+
       if (!checkResponse.ok) {
-        console.error('Record not found:', await checkResponse.text());
         throw new Error(`Record not found: ${recordId}`);
       }
-      
-      const recordData = await checkResponse.json();
-      console.log('Found record:', recordData);
-      
-      // Now update the record to revoke access
+
       const response = await fetch(`/api/shared-data/${recordId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-wallet-address': ethereumAddress || '',
         },
         body: JSON.stringify({ isActive: false }),
       });
-      
-      const responseText = await response.text();
-      console.log(`Revoke response (${response.status}):`, responseText);
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to revoke access: ${responseText}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to revoke access: ${errorText}`);
       }
-      
+
       // Update the UI by setting the record to inactive
       setSharedRecords(prevRecords =>
         prevRecords.map(record =>
@@ -210,8 +174,6 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
         description: 'The recipient can no longer access this shared data.',
       });
     } catch (error) {
-      console.error('Error revoking access:', error);
-
       // Show error toast
       toast.error('Failed to revoke access', {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -225,11 +187,11 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
     if (now > expiryTime) {
       return 'Expired';
     }
-    
+
     const difference = expiryTime.getTime() - now.getTime();
     const days = Math.floor(difference / (1000 * 60 * 60 * 24));
     const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0) {
       return `${days}d ${hours}h`;
     } else {
@@ -246,129 +208,141 @@ const SharedDataDashboard = ({ ethereumAddress }: SharedDataDashboardProps) => {
     return `${str.substring(0, startLength)}...${str.substring(str.length - endLength)}`;
   };
 
+  const getBadgeColor = (isExpired: boolean, isActive: boolean) => {
+    if (isExpired) return 'gray';
+    if (isActive) return 'green';
+    return 'red';
+  };
+
+  const getBadgeLabel = (isExpired: boolean, isActive: boolean) => {
+    if (isExpired) return 'Expired';
+    if (isActive) return 'Active';
+    return 'Revoked';
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Shared Medical Data</CardTitle>
-          <CardDescription>
-            Manage your shared medical data records
-          </CardDescription>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => loadSharedRecords(true)} 
-            disabled={loading}
-            title="Refresh shared records"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button onClick={handleShareNew} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Share New Data
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <Card shadow="sm" padding="lg" radius="md" withBorder w="100%">
+      <Card.Section withBorder inheritPadding py="md">
+        <Group justify="space-between">
+          <div>
+            <Text size="lg" fw={600}>Shared Medical Data</Text>
+            <Text size="sm" c="dimmed">
+              Manage your shared medical data records
+            </Text>
+          </div>
+          <Group gap="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadSharedRecords()}
+              loading={loading}
+              title="Refresh shared records"
+            >
+              <RefreshCw size={16} />
+            </Button>
+            <Button onClick={handleShareNew} leftSection={<Plus size={16} />}>
+              Share New Data
+            </Button>
+          </Group>
+        </Group>
+      </Card.Section>
+
+      <Card.Section withBorder inheritPadding py="md">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
+          <Stack align="center" py="xl">
+            <Loader size="lg" />
+            <Text c="dimmed">Loading shared records...</Text>
+          </Stack>
         ) : error ? (
-          <div className="bg-destructive/10 p-4 rounded-lg flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-destructive">Error loading shared records</h4>
-              <p className="text-sm text-destructive/80">{error}</p>
-              <Button onClick={() => loadSharedRecords(true)} variant="outline" size="sm" className="mt-2">
-                <RefreshCw className="h-3 w-3 mr-2" /> Try Again
-              </Button>
-            </div>
-          </div>
+          <Alert color="red" icon={<AlertCircle size={16} />} title="Error loading shared records">
+            <Text size="sm" c="dimmed">{error}</Text>
+            <Button onClick={() => loadSharedRecords()} variant="outline" size="xs" mt="sm">
+              <RefreshCw size={12} style={{ marginRight: 8 }} /> Try Again
+            </Button>
+          </Alert>
         ) : sharedRecords.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <h3 className="font-medium text-lg mb-2">No shared records yet</h3>
-            <p className="text-muted-foreground mb-6">
+          <Stack align="center" py="xl" gap="md">
+            <Text size="lg" fw={500}>No shared records yet</Text>
+            <Text c="dimmed" ta="center" maw={400}>
               You haven't shared any medical data yet. Click the button above to share your data securely.
-            </p>
+            </Text>
             <Button onClick={handleShareNew} variant="outline">
               Share Your First Record
             </Button>
-          </div>
+          </Stack>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Shared On</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Time Remaining</TableHead>
-                  <TableHead>Security</TableHead>
-                  <TableHead>Access Count</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sharedRecords.map((record) => {
-                  const isExpired = new Date() > record.expiryTime;
-                  return (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">
-                        {record.createdAt.toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={isExpired ? "outline" : record.isActive ? "default" : "secondary"} 
-                          className={isExpired ? "text-muted-foreground" : ""}
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Shared On</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Time Remaining</Table.Th>
+                <Table.Th>Security</Table.Th>
+                <Table.Th>Access Count</Table.Th>
+                <Table.Th ta="right">Actions</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {sharedRecords.map((record) => {
+                const isExpired = new Date() > record.expiryTime;
+                return (
+                  <Table.Tr key={record.id}>
+                    <Table.Td>
+                      <Text fw={500}>{record.createdAt.toLocaleDateString()}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Badge color={getBadgeColor(isExpired, record.isActive)} variant="light">
+                        {getBadgeLabel(isExpired, record.isActive)}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap={4}>
+                        <Clock size={12} />
+                        <Text size="sm">{formatTimeRemaining(record.expiryTime)}</Text>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{record.hasPassword ? 'Password Protected' : 'No Password'}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{record.accessCount}</Text>
+                    </Table.Td>
+                    <Table.Td ta="right">
+                      <Group gap="xs" justify="flex-end">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleViewShared(record.accessId)}
+                          disabled={isExpired || !record.isActive}
+                          title="View shared data"
                         >
-                          {isExpired ? 'Expired' : record.isActive ? 'Active' : 'Revoked'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatTimeRemaining(record.expiryTime)}</span>
-                      </TableCell>
-                      <TableCell>
-                        {record.hasPassword ? 'Password Protected' : 'No Password'}
-                      </TableCell>
-                      <TableCell>{record.accessCount}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewShared(record.accessId)}
-                            disabled={isExpired || !record.isActive}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRevokeAccess(record.id)}
-                            disabled={isExpired || !record.isActive}
-                          >
-                            <Trash className="h-4 w-4" />
-                            <span className="sr-only">Revoke</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                          <ExternalLink size={14} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          color="red"
+                          onClick={() => handleRevokeAccess(record.id)}
+                          disabled={isExpired || !record.isActive}
+                          title="Revoke access"
+                        >
+                          <Trash size={14} />
+                        </Button>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
         )}
-      </CardContent>
-      <CardFooter>
-        <p className="text-xs text-muted-foreground">
-          Your data is securely stored on IPFS and access is managed by an Ethereum smart contract
-        </p>
-      </CardFooter>
+      </Card.Section>
+
+      <Card.Section inheritPadding py="md">
+        <Text size="xs" c="dimmed">
+          Your data is securely stored on IPFS and access is managed by a blockchain smart contract
+        </Text>
+      </Card.Section>
     </Card>
   );
 };

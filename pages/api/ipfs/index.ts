@@ -53,7 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Import prisma client
       const { prisma } = require('@/lib/prisma');
       
-      console.log(`Looking up shared data for accessId: ${accessId}`);
       
       // Look up the shared data record in the database
       const sharedData = await prisma.sharedMedicalData.findFirst({
@@ -65,20 +64,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       // If no record is found, return an error
       if (!sharedData) {
-        console.log(`No shared data found for accessId: ${accessId}`);
         return res.status(404).json({ error: 'Shared data not found or access has been revoked' });
       }
       
       // Check if the data has expired
       const now = new Date();
       if (now > sharedData.expiryTime) {
-        console.log(`Access has expired for accessId: ${accessId}`);
         return res.status(403).json({ error: 'Access has expired' });
       }
       
       // Get the IPFS CID from the shared data record
       cidToUse = sharedData.ipfsCid;
-      console.log(`Found IPFS CID: ${cidToUse} for accessId: ${accessId}`);
       
       // Increment the access count
       await prisma.sharedMedicalData.update({
@@ -122,8 +118,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const isCIDv0 = !!normalizedCid.cidv0;
   
   // Log CID information for debugging
-  console.log(`Processing CID: ${cidString}`);
-  console.log(`CID version: ${isCIDv1 ? 'CIDv1' : isCIDv0 ? 'CIDv0' : 'Unknown'}`);
   
   // Special handling for known CIDs with their specific requirements
   const knownCids: Record<string, {
@@ -157,7 +151,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // For CIDs that need special handling, try direct IPFS node access first
     if (needsDirectIpfsAccess) {
-      console.log(`CID ${cid} needs special handling, trying direct IPFS node access first`);
       
       // Try direct IPFS node access if available
       try {
@@ -167,7 +160,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const pinataJwt = process.env.NEXT_PUBLIC_PINATA_JWT;
         
         if (pinataJwt || (pinataApiKey && pinataSecretApiKey)) {
-          console.log('Trying Pinata API directly with credentials');
           
           // Set up headers based on available credentials
           const headers: HeadersInit = {};
@@ -180,7 +172,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           try {
             // First check if the CID is pinned on Pinata
-            console.log(`Checking if CID ${cid} is pinned on Pinata`);
             const pinStatusResponse = await fetchWithTimeout(`https://api.pinata.cloud/pinning/pinJobs?ipfs_pin_hash=${cid}`, {
               method: 'GET',
               headers: {
@@ -193,7 +184,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const pinStatusData = await pinStatusResponse.json();
               
               if (pinStatusData.rows && pinStatusData.rows.length > 0) {
-                console.log(`CID ${cid} is pinned on Pinata, trying to retrieve content`);
                 
                 // Try to get the content directly from Pinata gateway with different formats
                 const pinataGatewayUrl = process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs';
@@ -204,7 +194,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   const url = `${pinataGatewayUrl}/${cid}${formatParam}`;
                   
                   try {
-                    console.log(`Trying Pinata gateway with format: ${format || 'default'}`);
                     const gatewayResponse = await fetchWithTimeout(url, {
                       headers: {
                         'Accept': '*/*'
@@ -213,7 +202,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     
                     if (gatewayResponse.ok) {
                       response = gatewayResponse;
-                      console.log(`Pinata gateway access succeeded with format: ${format || 'default'}`);
                       break;
                     }
                   } catch (formatError) {
@@ -235,7 +223,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           // Try Infura IPFS API directly if credentials are available
           if (infuraProjectId && infuraProjectSecret) {
-            console.log('Trying Infura IPFS API directly with credentials');
             
             const auth = 'Basic ' + Buffer.from(infuraProjectId + ':' + infuraProjectSecret).toString('base64');
             const infuraApiUrl = 'https://ipfs.infura.io:5001/api/v0';
@@ -245,7 +232,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             for (const endpoint of endpoints) {
               try {
-                console.log(`Trying Infura IPFS API with endpoint: ${endpoint}`);
                 
                 const infuraResponse = await fetchWithTimeout(`${infuraApiUrl}/${endpoint}?arg=${cid}`, {
                   method: 'POST',
@@ -257,7 +243,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 
                 if (infuraResponse.ok) {
                   response = infuraResponse;
-                  console.log(`Infura IPFS API access succeeded with endpoint: ${endpoint}`);
                   break;
                 } else {
                   console.warn(`Infura IPFS API with endpoint ${endpoint} failed with status: ${infuraResponse.status}`);
@@ -275,7 +260,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // If direct access didn't work or wasn't needed, try public gateways
     if (!response || !response.ok) {
-      console.log('Trying public IPFS gateways');
       
       // Define a list of IPFS gateways to try
       const publicGateways = [
@@ -300,7 +284,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           attemptedUrls.push(url);
           
           try {
-            console.log(`Trying gateway: ${gateway} with format: ${format || 'default'}`);
             const gatewayResponse = await fetchWithTimeout(url, {
               headers: {
                 'Accept': '*/*'
@@ -309,7 +292,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             if (gatewayResponse.ok) {
               response = gatewayResponse;
-              console.log(`Gateway access succeeded: ${gateway} with format: ${format || 'default'}`);
               break;
             } else {
               console.warn(`Gateway ${gateway} with format ${format} failed with status: ${gatewayResponse.status}`);

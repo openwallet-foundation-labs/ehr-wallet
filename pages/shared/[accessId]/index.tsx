@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Lock, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Card, Text, Button, TextInput, Alert, LoadingOverlay } from '@mantine/core';
+import { Lock, AlertTriangle, Check, Clock, Eye } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useWeb3 } from '@/components/web3/Web3Handler';
 
@@ -14,7 +10,7 @@ import { useWeb3 } from '@/components/web3/Web3Handler';
 export default function SharedDataPage() {
   const router = useRouter();
   const { accessId, useProxy } = router.query;
-  
+
   // Get the Web3 context
   const web3 = useWeb3();
 
@@ -31,17 +27,17 @@ export default function SharedDataPage() {
   useEffect(() => {
     const fetchAccessDetails = async () => {
       if (!accessId || typeof accessId !== 'string') return;
-      
+
       try {
         // Use the Web3Handler to get access details
         const details = await web3.getAccessGrantDetails(accessId);
         setAccessDetails(details);
-        
+
         // Set expiry time if available
         if (details.expiryTime) {
           setExpiryTime(details.expiryTime);
         }
-        
+
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching access details:', err);
@@ -92,21 +88,21 @@ export default function SharedDataPage() {
   // Verify access and fetch data
   const verifyAndFetchData = async (passwordInput: string) => {
     if (!accessId || typeof accessId !== 'string') return;
-    
+
     setVerifying(true);
     setError(null);
 
     try {
       // Verify access using the Web3Handler
       const ipfsCid = await web3.verifyAccess(accessId, passwordInput || undefined);
-      
+
       if (!ipfsCid) {
         throw new Error('Failed to verify access - no IPFS CID returned');
       }
-      
+
       // Fetch the data from IPFS using our proxy if requested
       let data = await web3.getFromIpfs(ipfsCid);
-      
+
       // If the data is encrypted and we have a password, decrypt it
       if (typeof data === 'string' && passwordInput) {
         try {
@@ -116,7 +112,7 @@ export default function SharedDataPage() {
           throw new Error('Invalid password or corrupted data');
         }
       }
-      
+
       // Record this access in the database
       try {
         const recordResponse = await fetch('/api/shared-data/record-access', {
@@ -126,9 +122,8 @@ export default function SharedDataPage() {
           },
           body: JSON.stringify({ accessId }),
         });
-        
+
         if (recordResponse.ok) {
-          console.log('Access recorded successfully');
         } else {
           console.warn('Failed to record access:', await recordResponse.json());
         }
@@ -136,7 +131,7 @@ export default function SharedDataPage() {
         console.error('Error recording access:', recordError);
         // Continue even if recording fails - don't block access to data
       }
-      
+
       setSharedData(data);
     } catch (err: any) {
       console.error('Error verifying access:', err);
@@ -155,39 +150,29 @@ export default function SharedDataPage() {
     if (!sharedData) return null;
 
     return (
-      <div className="space-y-6">
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-600">Access Granted</AlertTitle>
-          <AlertDescription>
-            You have successfully accessed the shared medical data
-          </AlertDescription>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <Alert color="green" title="Access Granted" icon={<Check size={16} />}>
+          You have successfully accessed the shared medical data
         </Alert>
 
-        <div className="bg-muted p-4 rounded-lg">
-          <h3 className="font-medium mb-2">Patient Information</h3>
-          <p className="text-sm">Patient ID: {sharedData.patientId}</p>
-          <p className="text-sm">Shared on: {new Date(sharedData.createdAt).toLocaleString()}</p>
+        <div style={{ backgroundColor: 'var(--mantine-color-gray-1)', padding: '16px', borderRadius: '8px' }}>
+          <Text fw={500} mb="xs">Patient Information</Text>
+          <Text size="sm">Patient ID: {sharedData.patientId}</Text>
+          <Text size="sm">Shared on: {new Date(sharedData.createdAt).toLocaleString()}</Text>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-medium">Shared Data Types</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Text fw={500}>Shared Data Types</Text>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
             {sharedData.dataTypes.map((type: string) => (
-              <Card key={type} className="bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{formatDataType(type)}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Data available for viewing
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    View Details
-                  </Button>
-                </CardFooter>
+              <Card key={type} withBorder>
+                <Text fw={500} size="md" mb="xs">{formatDataType(type)}</Text>
+                <Text size="sm" c="dimmed">
+                  Data available for viewing
+                </Text>
+                <Button variant="outline" fullWidth mt="md">
+                  View Details
+                </Button>
               </Card>
             ))}
           </div>
@@ -210,8 +195,8 @@ export default function SharedDataPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <LoadingOverlay visible={loading} />
       </div>
     );
   }
@@ -219,109 +204,85 @@ export default function SharedDataPage() {
   // If access has expired
   if (expiryTime && new Date() > expiryTime) {
     return (
-      <div className="container max-w-md mx-auto py-12 px-4">
+      <div style={{ maxWidth: '500px', margin: '0 auto', padding: '48px 16px' }}>
         <Card>
-          <CardHeader>
-            <CardTitle>Access Expired</CardTitle>
-            <CardDescription>
-              The shared data is no longer available
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Expired</AlertTitle>
-              <AlertDescription>
-                This shared data link has expired and is no longer accessible.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-          <CardFooter>
-            <p className="text-xs text-muted-foreground">
-              Please contact the patient if you need access to this data.
-            </p>
-          </CardFooter>
+          <Text fw={600} size="lg" mb="xs">Access Expired</Text>
+          <Text size="sm" c="dimmed" mb="md">
+            The shared data is no longer available
+          </Text>
+          <Alert color="red" title="Expired" icon={<AlertTriangle size={16} />}>
+            This shared data link has expired and is no longer accessible.
+          </Alert>
+          <Text size="xs" c="dimmed" mt="md">
+            Please contact the patient if you need access to this data.
+          </Text>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Shared Medical Data</h1>
-      
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 16px' }}>
+      <Text size="xl" fw={700} mb="xl">Shared Medical Data</Text>
+
       {!sharedData ? (
           <Card>
-            <CardHeader>
-              <CardTitle>Access Verification</CardTitle>
-              <CardDescription>
-                {accessDetails?.hasPassword 
-                  ? 'Enter the password to access the shared medical data'
-                  : 'Verifying access to the shared medical data'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              
-              {expiryTime && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    Time remaining: <strong>{timeLeft}</strong>
-                  </span>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter the password provided by the patient"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={verifying}
-                  />
-                  <Button 
-                    onClick={handleVerify} 
-                    disabled={verifying || !password}
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Verifying
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="mr-2 h-4 w-4" />
-                        Verify
-                      </>
-                    )}
-                  </Button>
+            <Text fw={600} size="lg" mb="xs">Access Verification</Text>
+            <Text size="sm" c="dimmed" mb="md">
+              {accessDetails?.hasPassword
+                ? 'Enter the password to access the shared medical data'
+                : 'Verifying access to the shared medical data'}
+            </Text>
+
+            {error && (
+              <Alert color="red" title="Error" icon={<AlertTriangle size={16} />} mb="md">
+                {error}
+              </Alert>
+            )}
+
+            {expiryTime && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                <Clock size={16} />
+                <span>
+                  Time remaining: <strong>{timeLeft}</strong>
+                </span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+              <Text size="sm" fw={500}>Password</Text>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <TextInput
+                  placeholder="Enter the password provided by the patient"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={verifying}
+                  style={{ flex: 1 }}
+                  type="password"
+                />
+                <Button
+                  onClick={handleVerify}
+                  disabled={verifying || !password}
+                  leftSection={!verifying ? <Lock size={16} /> : undefined}
+                  loading={verifying}
+                >
+                  {verifying ? 'Verifying' : 'Verify'}
+                </Button>
+              </div>
+            </div>
+
+            {verifying && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <LoadingOverlay visible={verifying} />
+                  <Text size="sm" c="dimmed">Verifying access...</Text>
                 </div>
               </div>
-              
-              {verifying && (
-                <div className="flex justify-center py-4">
-                  <div className="flex flex-col items-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                    <p className="text-sm text-muted-foreground">Verifying access...</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <p className="text-xs text-muted-foreground">
-                This data is securely stored on IPFS and access is managed by an Ethereum smart contract
-              </p>
-            </CardFooter>
+            )}
+
+            <Text size="xs" c="dimmed" mt="md">
+              This data is securely stored on IPFS and access is managed by a blockchain smart contract
+            </Text>
           </Card>
         ) : (
           renderSharedData()

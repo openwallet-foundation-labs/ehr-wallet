@@ -2,7 +2,9 @@
 
 # EHR Wallet
 
-[![CI Status](https://github.com/sbhavani/health-wallet/actions/workflows/ci.yml/badge.svg)](https://github.com/sbhavani/health-wallet/actions/workflows/ci.yml) [![Smart Contract Tests](https://github.com/sbhavani/health-wallet/actions/workflows/smart-contract.yml/badge.svg)](https://github.com/sbhavani/health-wallet/actions/workflows/smart-contract.yml)
+[![CI Status](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/ci.yml/badge.svg)](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/ci.yml)
+[![Smart Contract Tests](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/smart-contract.yml/badge.svg)](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/smart-contract.yml)
+[![Dependency Security](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/dependency-security.yml/badge.svg)](https://github.com/openwallet-foundation-labs/ehr-wallet/actions/workflows/dependency-security.yml)
 
 ## Project Overview
 
@@ -10,9 +12,9 @@ EHR Wallet is an innovative blockchain-powered healthcare information solution d
 
 ## Project Roadmap
 
-Track our development progress and upcoming features on our public GitHub Project board:
+Track our development progress and upcoming features in our roadmap document:
 
-[View EHR Wallet Roadmap](https://github.com/users/sbhavani/projects/2/views/1)
+[View EHR Wallet Roadmap](./docs/PRD.md)
 
 ## Product Screenshot
 
@@ -163,6 +165,15 @@ After successful deployment:
 - View your deployment on PolygonScan:
   - Testnet: `https://amoy.polygonscan.com/address/<CONTRACT_ADDRESS>`
   - Mainnet: `https://polygonscan.com/address/<CONTRACT_ADDRESS>`
+
+## Documentation
+
+For detailed documentation, see the `/docs` folder:
+
+- [Product Roadmap](./docs/PRD.md) - Feature roadmap and milestones
+- [FHIR Implementation](./docs/FHIR_IMPLEMENTATION.md) - Healthcare data standards
+- [API Documentation](./docs/API.md) - API endpoints reference
+- [Cost Optimization](./docs/COST_OPTIMIZATION_ARCHITECTURE.md) - Infrastructure cost analysis
 
 ## License
 

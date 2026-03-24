@@ -3,22 +3,24 @@ import { useSession, signOut } from "next-auth/react";
 import { getCurrentUser } from "@/lib/offline-auth";
 import { hybridSignOut } from "@/lib/auth-compatibility";
 import { useRouter } from "next/router";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User } from "lucide-react";
+import {
+  Button,
+  Avatar,
+  Group,
+  Text,
+  Divider,
+  Menu,
+  MenuTarget,
+  MenuDropdown,
+  MenuItem,
+} from "@mantine/core";
+import { LogOut } from "lucide-react";
 
 export function UserAccountNav() {
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<any>(null);
-  
+
   useEffect(() => {
     // First check NextAuth session, then fallback to offline auth
     if (session?.user) {
@@ -29,9 +31,9 @@ export function UserAccountNav() {
       if (currentUser) setUser(currentUser);
     }
   }, [session]);
-  
+
   if (!user) return null;
-  
+
   // Get initials for avatar
   const initials = user.name
     ? user.name
@@ -47,39 +49,42 @@ export function UserAccountNav() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{initials}</AvatarFallback>
+    <Menu position="bottom-end" withArrow>
+      <MenuTarget>
+        <Button variant="subtle" p={0} style={{ borderRadius: '50%', width: 36, height: 36 }}>
+          <Avatar
+            size={32}
+            radius="xl"
+            color="blue"
+          >
+            {initials}
           </Avatar>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1 leading-none">
-            {user.name && <p className="font-medium">{user.name}</p>}
-            <p className="w-[200px] truncate text-sm text-muted-foreground">
-              {user.email}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {user.role && formatRole(user.role)}
-            </p>
-          </div>
+      </MenuTarget>
+      <MenuDropdown>
+        <div style={{ padding: '8px 12px' }}>
+          <Group gap="sm" wrap="nowrap">
+            {user.name && <Text fw={500}>{user.name}</Text>}
+          </Group>
+          <Text size="xs" c="dimmed" style={{ maxWidth: 200 }} truncate>
+            {user.email}
+          </Text>
+          {user.role && (
+            <Text size="xs" c="dimmed">
+              {formatRole(user.role)}
+            </Text>
+          )}
         </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <button
-            className="flex w-full cursor-pointer items-center"
-            onClick={async () => {
-              await hybridSignOut('/login');
-            }}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Sign out</span>
-          </button>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <Divider />
+        <MenuItem
+          leftSection={<LogOut size={14} />}
+          onClick={async () => {
+            await hybridSignOut('/login');
+          }}
+        >
+          Sign out
+        </MenuItem>
+      </MenuDropdown>
+    </Menu>
   );
 }

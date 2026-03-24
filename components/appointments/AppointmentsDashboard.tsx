@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, List, Filter, Search, Calendar } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Paper, Title, Text, Card } from '@mantine/core';
+import { Button } from '@mantine/core';
+import { TextInput } from '@mantine/core';
+import { Select } from '@mantine/core';
+import { Modal } from '@mantine/core';
+import { Badge } from '@mantine/core';
+import { Skeleton } from '@mantine/core';
 import AppointmentList from './AppointmentList';
 import AppointmentBooking from './AppointmentBooking';
 import AppointmentDetails from './AppointmentDetails';
 import { useAppointments, useAppointmentData, AppointmentFilters } from '@/hooks/useAppointments';
-import { format, isToday, isTomorrow, isThisWeek, isThisMonth } from 'date-fns';
+import { format, isToday } from 'date-fns';
 
 interface AppointmentsDashboardProps {
   patientId: string;
@@ -35,13 +35,13 @@ const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({ patientId
   const { providers, appointmentTypes, loading: dataLoading } = useAppointmentData();
 
   // Filter appointments by status for quick stats
-  const upcomingAppointments = appointments.filter(apt => 
+  const upcomingAppointments = appointments.filter(apt =>
     apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED'
   );
-  const todayAppointments = appointments.filter(apt => 
+  const todayAppointments = appointments.filter(apt =>
     isToday(new Date(apt.startTime)) && (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED')
   );
-  const pastAppointments = appointments.filter(apt => 
+  const pastAppointments = appointments.filter(apt =>
     apt.status === 'COMPLETED' || apt.status === 'CANCELLED' || apt.status === 'NO_SHOW'
   );
 
@@ -81,27 +81,27 @@ const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({ patientId
   const applyQuickFilter = (filterType: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     switch (filterType) {
       case 'today':
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        setFilters({ 
-          dateFrom: today, 
+        setFilters({
+          dateFrom: today,
           dateTo: tomorrow,
-          status: undefined 
+          status: undefined
         });
         break;
       case 'upcoming':
-        setFilters({ 
+        setFilters({
           dateFrom: today,
-          status: undefined 
+          status: undefined
         });
         break;
       case 'past':
-        setFilters({ 
+        setFilters({
           dateTo: today,
-          status: undefined 
+          status: undefined
         });
         break;
       case 'all':
@@ -112,259 +112,257 @@ const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({ patientId
 
   if (loading && dataLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton height={32} width={192} />
+          <Skeleton height={40} width={128} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
           {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
+            <Paper key={i} p="md" withBorder>
+              <Skeleton height={16} width={96} mb={8} />
+              <Skeleton height={32} width={64} />
+            </Paper>
           ))}
         </div>
-        <Skeleton className="h-96 w-full" />
+        <Skeleton height={384} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
         <div>
-          <h2 className="text-2xl font-bold">Appointments</h2>
-          <p className="text-muted-foreground">
+          <Title order={2}>Appointments</Title>
+          <Text c="dimmed">
             Manage your healthcare appointments
-          </p>
+          </Text>
         </div>
-        
-        <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Book Appointment
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Book New Appointment</DialogTitle>
-            </DialogHeader>
-            <AppointmentBooking
-              patientId={patientId}
-              onBookingComplete={handleBookingSuccess}
-              onCancel={() => setShowBookingDialog(false)}
-            />
-          </DialogContent>
-        </Dialog>
+
+        <Button
+          leftSection={<Plus size={16} />}
+          onClick={() => setShowBookingDialog(true)}
+        >
+          Book Appointment
+        </Button>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => applyQuickFilter('today')}>          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Today</p>
-                <p className="text-2xl font-bold">{getQuickFilterCount('today')}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <Paper
+          p="md"
+          withBorder
+          style={{ cursor: 'pointer' }}
+          onClick={() => applyQuickFilter('today')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <Text size="sm" fw={500} c="dimmed">Today</Text>
+              <Text size="xl" fw={700}>{getQuickFilterCount('today')}</Text>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => applyQuickFilter('upcoming')}>          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming</p>
-                <p className="text-2xl font-bold">{getQuickFilterCount('upcoming')}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-green-500" />
+            <Calendar size={32} color="#3b82f6" />
+          </div>
+        </Paper>
+
+        <Paper
+          p="md"
+          withBorder
+          style={{ cursor: 'pointer' }}
+          onClick={() => applyQuickFilter('upcoming')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <Text size="sm" fw={500} c="dimmed">Upcoming</Text>
+              <Text size="xl" fw={700}>{getQuickFilterCount('upcoming')}</Text>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => applyQuickFilter('past')}>          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Past</p>
-                <p className="text-2xl font-bold">{getQuickFilterCount('past')}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-gray-500" />
+            <Calendar size={32} color="#22c55e" />
+          </div>
+        </Paper>
+
+        <Paper
+          p="md"
+          withBorder
+          style={{ cursor: 'pointer' }}
+          onClick={() => applyQuickFilter('past')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <Text size="sm" fw={500} c="dimmed">Past</Text>
+              <Text size="xl" fw={700}>{getQuickFilterCount('past')}</Text>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => applyQuickFilter('all')}>          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{appointments.length}</p>
-              </div>
-              <List className="h-8 w-8 text-purple-500" />
+            <Calendar size={32} color="#6b7280" />
+          </div>
+        </Paper>
+
+        <Paper
+          p="md"
+          withBorder
+          style={{ cursor: 'pointer' }}
+          onClick={() => applyQuickFilter('all')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <Text size="sm" fw={500} c="dimmed">Total</Text>
+              <Text size="xl" fw={700}>{appointments.length}</Text>
             </div>
-          </CardContent>
-        </Card>
+            <List size={32} color="#a855f7" />
+          </div>
+        </Paper>
       </div>
 
       {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search appointments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            {/* Status Filter */}
-            <Select
-              value={filters.status || 'all'}
-              onValueChange={(value) => 
-                setFilters(prev => ({ 
-                  ...prev, 
-                  status: value === 'all' ? undefined : value 
-                }))
-              }
+      <Paper p="md" withBorder>
+        <Title order={5} mb="md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Filter size={20} />
+          Filters
+        </Title>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          {/* Search */}
+          <TextInput
+            placeholder="Search appointments..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftSection={<Search size={16} />}
+          />
+
+          {/* Status Filter */}
+          <Select
+            value={filters.status || 'all'}
+            onChange={(value) =>
+              setFilters(prev => ({
+                ...prev,
+                status: value === 'all' ? undefined : value as string
+              }))
+            }
+            data={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'scheduled', label: 'Scheduled' },
+              { value: 'confirmed', label: 'Confirmed' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'cancelled', label: 'Cancelled' },
+              { value: 'no_show', label: 'No Show' },
+            ]}
+            placeholder="All Statuses"
+          />
+
+          {/* Provider Filter */}
+          <Select
+            value={filters.providerId || 'all'}
+            onChange={(value) =>
+              setFilters(prev => ({
+                ...prev,
+                providerId: value === 'all' ? undefined : value as string
+              }))
+            }
+            data={[
+              { value: 'all', label: 'All Providers' },
+              ...providers.map((provider) => ({
+                value: provider.id,
+                label: provider.name
+              }))]
+            }
+            placeholder="All Providers"
+          />
+
+          {/* Appointment Type Filter */}
+          <Select
+            value={filters.appointmentTypeId || 'all'}
+            onChange={(value) =>
+              setFilters(prev => ({
+                ...prev,
+                appointmentTypeId: value === 'all' ? undefined : value as string
+              }))
+            }
+            data={[
+              { value: 'all', label: 'All Types' },
+              ...appointmentTypes.map((type) => ({
+                value: type.id,
+                label: type.name
+              }))]
+            }
+            placeholder="All Types"
+          />
+        </div>
+
+        {/* Active Filters */}
+        {(filters.status || filters.providerId || filters.appointmentTypeId || searchTerm) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <Text size="sm" c="dimmed">Active filters:</Text>
+            {filters.status && (
+              <Badge variant="light" color="gray">
+                {filters.status}
+              </Badge>
+            )}
+            {filters.providerId && (
+              <Badge variant="light" color="gray">
+                {providers.find(p => p.id === filters.providerId)?.name}
+              </Badge>
+            )}
+            {filters.appointmentTypeId && (
+              <Badge variant="light" color="gray">
+                {appointmentTypes.find(t => t.id === filters.appointmentTypeId)?.name}
+              </Badge>
+            )}
+            {searchTerm && (
+              <Badge variant="light" color="gray">
+                Search: {searchTerm}
+              </Badge>
+            )}
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={clearFilters}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no_show">No Show</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {/* Provider Filter */}
-            <Select
-              value={filters.providerId || 'all'}
-              onValueChange={(value) => 
-                setFilters(prev => ({ 
-                  ...prev, 
-                  providerId: value === 'all' ? undefined : value 
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Providers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Providers</SelectItem>
-                {providers.map((provider) => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Appointment Type Filter */}
-            <Select
-              value={filters.appointmentTypeId || 'all'}
-              onValueChange={(value) => 
-                setFilters(prev => ({ 
-                  ...prev, 
-                  appointmentTypeId: value === 'all' ? undefined : value 
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {appointmentTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Clear all
+            </Button>
           </div>
-          
-          {/* Active Filters */}
-          {(filters.status || filters.providerId || filters.appointmentTypeId || searchTerm) && (
-            <div className="flex items-center gap-2 mt-4">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {filters.status && (
-                <Badge variant="secondary" className="capitalize">
-                  {filters.status}
-                </Badge>
-              )}
-              {filters.providerId && (
-                <Badge variant="secondary">
-                  {providers.find(p => p.id === filters.providerId)?.name}
-                </Badge>
-              )}
-              {filters.appointmentTypeId && (
-                <Badge variant="secondary">
-                  {appointmentTypes.find(t => t.id === filters.appointmentTypeId)?.name}
-                </Badge>
-              )}
-              {searchTerm && (
-                <Badge variant="secondary">
-                  Search: {searchTerm}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-6 px-2 text-xs"
-              >
-                Clear all
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </Paper>
 
       {/* Appointments List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Appointments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AppointmentList
-            appointments={appointments}
-            loading={loading}
-            onAppointmentSelect={handleAppointmentSelect}
-            onRefresh={refreshAppointments}
-          />
-        </CardContent>
-      </Card>
+      <Paper p="md" withBorder>
+        <Title order={5} mb="md">Your Appointments</Title>
+        <AppointmentList
+          appointments={appointments}
+          loading={loading}
+          onAppointmentSelect={handleAppointmentSelect}
+          onRefresh={refreshAppointments}
+        />
+      </Paper>
 
-      {/* Appointment Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedAppointmentId && (
-            <AppointmentDetails
-              appointmentId={selectedAppointmentId}
-              onClose={() => setShowDetailsDialog(false)}
-              onUpdate={handleAppointmentUpdate}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Appointment Details Modal */}
+      <Modal
+        opened={showBookingDialog}
+        onClose={() => setShowBookingDialog(false)}
+        title="Book New Appointment"
+        size="lg"
+        styles={{ body: { maxHeight: '90vh', overflowY: 'auto' } }}
+      >
+        <AppointmentBooking
+          patientId={patientId}
+          onBookingComplete={handleBookingSuccess}
+          onCancel={() => setShowBookingDialog(false)}
+        />
+      </Modal>
+
+      {/* Appointment Details Modal */}
+      <Modal
+        opened={showDetailsDialog}
+        onClose={() => setShowDetailsDialog(false)}
+        title="Appointment Details"
+        size="lg"
+        styles={{ body: { maxHeight: '90vh', overflowY: 'auto' } }}
+      >
+        {selectedAppointmentId && (
+          <AppointmentDetails
+            appointmentId={selectedAppointmentId}
+            onClose={() => setShowDetailsDialog(false)}
+            onUpdate={handleAppointmentUpdate}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

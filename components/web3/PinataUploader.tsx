@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useRef, ChangeEvent } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button, Card, Text, TextInput, Alert, Group, Stack, ThemeIcon, FileButton } from '@mantine/core';
 import { AlertCircle, CheckCircle, Upload, FileText, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { pinataService } from '@/lib/web3/pinata';
 
@@ -26,8 +23,7 @@ export function PinataUploader() {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
+  const handleFileChange = (selectedFile: File | null) => {
     setFile(selectedFile);
     setError(null);
     setUploadResult(null);
@@ -41,19 +37,19 @@ export function PinataUploader() {
 
     setIsUploading(true);
     setError(null);
-    
+
     try {
       // Check if Pinata is configured
       if (!pinataService.isConfigured()) {
         throw new Error('Pinata is not configured. Please set up your Pinata API keys in the environment variables.');
       }
-      
+
       // Upload the file to Pinata
       const cid = await pinataService.uploadFile(file);
-      
+
       // Get the gateway URL
       const gatewayUrl = pinataService.getGatewayUrl(cid);
-      
+
       setUploadResult({
         cid,
         gatewayUrl,
@@ -77,89 +73,94 @@ export function PinataUploader() {
   };
 
   const getFileIcon = () => {
-    if (!file) return <Upload className="h-8 w-8 text-muted-foreground" />;
-    
+    if (!file) return <Upload size={32} color="var(--mantine-color-gray-5)" />;
+
     const fileType = file.type.split('/')[0];
     switch (fileType) {
       case 'image':
-        return <ImageIcon className="h-8 w-8 text-blue-500" />;
+        return <ImageIcon size={32} color="blue" />;
       default:
-        return <FileText className="h-8 w-8 text-blue-500" />;
+        return <FileText size={32} color="blue" />;
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Upload to IPFS via Pinata</CardTitle>
-        <CardDescription>
+    <Card shadow="sm" padding="lg" radius="md" withBorder w="100%" maw={420} mx="auto">
+      <Card.Section withBorder inheritPadding py="xs">
+        <Text size="lg" fw={600}>Upload to IPFS via Pinata</Text>
+        <Text size="sm" c="dimmed">
           Select a file to upload to IPFS using Pinata
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-md border-muted-foreground/25 bg-muted/50">
-            <div className="flex flex-col items-center space-y-2">
-              {getFileIcon()}
-              <div className="text-sm text-center text-muted-foreground">
+        </Text>
+      </Card.Section>
+
+      <Card.Section withBorder inheritPadding py="md">
+        <Stack gap="md">
+          <Card withBorder padding="md" radius="md" bg="gray.0">
+            <Stack align="center" gap="xs">
+              <ThemeIcon variant="light" size="xl" radius="xl">
+                {getFileIcon()}
+              </ThemeIcon>
+              <Text size="sm" ta="center" c="dimmed">
                 {file ? file.name : 'No file selected'}
-              </div>
+              </Text>
               {file && (
-                <div className="text-xs text-muted-foreground">
+                <Text size="xs" c="dimmed">
                   {(file.size / 1024).toFixed(2)} KB
-                </div>
+                </Text>
               )}
-            </div>
-          </div>
-          
-          <Input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileChange}
-            className="cursor-pointer"
-          />
-          
+            </Stack>
+          </Card>
+
+          <FileButton onChange={handleFileChange} accept="*/*">
+            {(props) => (
+              <Button
+                {...props}
+                variant="light"
+                leftSection={<Upload size={16} />}
+                fullWidth
+              >
+                Select File
+              </Button>
+            )}
+          </FileButton>
+
           {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+            <Alert color="red" icon={<AlertCircle size={16} />} title="Error">
+              {error}
             </Alert>
           )}
-          
+
           {uploadResult && (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <AlertTitle className="text-green-700">Upload Successful</AlertTitle>
-              <AlertDescription className="text-green-600">
-                <div className="mt-2 space-y-1">
-                  <p><strong>CID:</strong> {uploadResult.cid}</p>
-                  <p>
-                    <strong>Gateway URL:</strong>{' '}
-                    <a 
-                      href={uploadResult.gatewayUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline break-all"
-                    >
-                      {uploadResult.gatewayUrl}
-                    </a>
-                  </p>
-                </div>
-              </AlertDescription>
+            <Alert color="green" icon={<CheckCircle size={16} />} title="Upload Successful">
+              <Stack gap="xs">
+                <Text size="sm"><strong>CID:</strong> {uploadResult.cid}</Text>
+                <Text size="sm">
+                  <strong>Gateway URL:</strong>{' '}
+                  <a
+                    href={uploadResult.gatewayUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--mantine-color-blue-6)', textDecoration: 'underline', wordBreak: 'break-all' }}
+                  >
+                    {uploadResult.gatewayUrl}
+                  </a>
+                </Text>
+              </Stack>
             </Alert>
           )}
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={handleClear} disabled={isUploading}>
-          Clear
-        </Button>
-        <Button onClick={handleUpload} disabled={!file || isUploading}>
-          {isUploading ? <Spinner className="mr-2" /> : null}
-          {isUploading ? 'Uploading...' : 'Upload to IPFS'}
-        </Button>
-      </CardFooter>
+        </Stack>
+      </Card.Section>
+
+      <Card.Section withBorder inheritPadding py="md">
+        <Group justify="space-between">
+          <Button variant="outline" onClick={handleClear} disabled={isUploading}>
+            Clear
+          </Button>
+          <Button onClick={handleUpload} disabled={!file || isUploading} loading={isUploading}>
+            {isUploading ? 'Uploading...' : 'Upload to IPFS'}
+          </Button>
+        </Group>
+      </Card.Section>
     </Card>
   );
 }

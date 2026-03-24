@@ -1,48 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, Table, Badge, Button, Alert, Group, Text, LoadingOverlay, Title } from '@mantine/core';
 import { AlertCircle, Clock, ExternalLink, ShieldAlert, Eye } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import PatientLayout from '@/components/layout/PatientLayout';
-
-// Temporarily use regular import to debug dynamic import issue
-import { MetaMaskProvider } from '@/components/web3/MetaMaskProvider';
-
-// We'll fetch real data from the API
+import { useMetaMask } from '@/components/web3/MetaMaskProvider';
 
 export default function AccessLogsPage() {
   const { data: session } = useSession();
+  const { currentAccount } = useMetaMask();
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
-
-  // Check if MetaMask is installed
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMetaMaskInstalled(Boolean(window.ethereum?.isMetaMask));
-    }
-  }, []);
 
   // Load access logs directly from the database
   useEffect(() => {
     const fetchAccessLogs = async () => {
       try {
         setLoading(true);
-        
-        // Directly fetch all shared data records from the database
-        const response = await fetch('/api/shared-data?all=true');
-        
+
+        // Build headers with wallet address if available
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        if (currentAccount) {
+          headers['x-wallet-address'] = currentAccount;
+        }
+
+        const response = await fetch('/api/shared-data?all=true', { headers });
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch access logs');
         }
-        
+
         const sharedData = await response.json();
-        
+
         // Transform the shared data into access logs format
         const logs = sharedData.map((data: any) => {
           const dataTypes = data.dataTypes ? data.dataTypes.split(',') : [];
@@ -57,11 +49,9 @@ export default function AccessLogsPage() {
             pinStatus: 'pinned'
           };
         });
-        
-        console.log('Transformed access logs:', logs);
+
         setAccessLogs(logs);
       } catch (err: any) {
-        console.error('Error fetching access logs:', err);
         setError(err.message || 'Failed to fetch access logs');
       } finally {
         setLoading(false);
@@ -69,7 +59,7 @@ export default function AccessLogsPage() {
     };
 
     fetchAccessLogs();
-  }, []);
+  }, [currentAccount]);
 
   // Format data types for display
   const formatDataTypes = (types: string[]) => {
@@ -80,7 +70,7 @@ export default function AccessLogsPage() {
       'prescriptions': 'Prescriptions',
       'visit-notes': 'Visit Notes',
     };
-    
+
     return types.map(type => labels[type] || type).join(', ');
   };
 
@@ -112,109 +102,105 @@ export default function AccessLogsPage() {
   return (
     <PatientLayout>
       <div className="container max-w-7xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-2">Access Logs</h1>
-        <p className="text-muted-foreground mb-8">
+        <Title order={1}>Access Logs</Title>
+        <Text c="dimmed" mb="xl">
           Track who has accessed your shared medical data
-        </p>
-      
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Data Access History</CardTitle>
-          <CardDescription>
-            A record of all access to your shared medical data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-destructive/10 p-4 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-destructive">Error loading access logs</h4>
-                <p className="text-sm text-destructive/80">{error}</p>
+        </Text>
+
+        <Card shadow="sm" padding="lg" radius="md" withBorder>
+          <Card.Section withBorder inheritPadding py="xs">
+            <Group justify="space-between">
+              <Title order={3}>Data Access History</Title>
+              <Text size="sm" c="dimmed">
+                A record of all access to your shared medical data
+              </Text>
+            </Group>
+          </Card.Section>
+          <Card.Section withBorder inheritPadding py="md" pos="relative">
+            <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ blur: 2 }} />
+
+            {error ? (
+              <Alert color="red" icon={<AlertCircle size={16} />} title="Error loading access logs">
+                {error}
+              </Alert>
+            ) : accessLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 16px' }}>
+                <ShieldAlert size={48} style={{ margin: '0 auto 16px', color: 'var(--mantine-color-dimmed)' }} />
+                <Text fw={500} size="lg" mb="xs">No access logs yet</Text>
+                <Text c="dimmed">
+                  When someone accesses your shared medical data, it will be recorded here.
+                </Text>
               </div>
-            </div>
-          ) : accessLogs.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg mb-2">No access logs yet</h3>
-              <p className="text-muted-foreground">
-                When someone accesses your shared medical data, it will be recorded here.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Accessed By</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Data Types</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            ) : (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Accessed By</Table.Th>
+                    <Table.Th>Time</Table.Th>
+                    <Table.Th>Data Types</Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
                   {accessLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">
-                        {truncateAddress(log.accessedBy)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                    <Table.Tr key={log.id}>
+                      <Table.Td>
+                        <Text fw={500}>
+                          {truncateAddress(log.accessedBy)}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap={4}>
+                          <Clock size={12} />
                           <span>{formatTimeAgo(log.accessedAt)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDataTypes(log.dataTypes)}</TableCell>
-                      <TableCell>
-                        <Badge variant={log.status === 'active' ? "default" : "outline"} className={log.status === 'active' ? "" : "text-muted-foreground"}>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>{formatDataTypes(log.dataTypes)}</Table.Td>
+                      <Table.Td>
+                        <Badge color={log.status === 'active' ? 'green' : 'gray'} variant="outline">
                           {log.status === 'active' ? 'Active' : 'Expired'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                      </Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>
+                        <Group gap="xs" justify="flex-end">
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={() => window.open(`/shared/${log.id}`, '_blank')}
                             disabled={log.status !== 'active'}
+                            leftSection={<Eye size={14} />}
                           >
-                            <Eye className="h-4 w-4" />
-                            <span className="sr-only">View</span>
+                            View
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={() => window.open(`https://ipfs.io/ipfs/${log.ipfsCid}`, '_blank')}
                             title="View on IPFS"
+                            leftSection={<ExternalLink size={14} />}
                           >
-                            <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only">IPFS</span>
+                            IPFS
                           </Button>
-                          <div className="flex flex-col items-end ml-2">
-                            <span className="text-xs text-muted-foreground">
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 8 }}>
+                            <Text size="xs" c="dimmed">
                               {log.accessCount} {log.accessCount === 1 ? 'view' : 'views'}
-                            </span>
+                            </Text>
                             {log.pinStatus && (
-                              <span className="text-xs text-muted-foreground">
+                              <Text size="xs" c="dimmed">
                                 {log.pinStatus === 'pinned' ? 'Active pin' : log.pinStatus}
-                              </span>
+                              </Text>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
                   ))}
-                </TableBody>
+                </Table.Tbody>
               </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </Card.Section>
+        </Card>
       </div>
     </PatientLayout>
   );

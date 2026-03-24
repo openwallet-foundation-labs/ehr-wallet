@@ -7,10 +7,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Require authentication for all requests
+  // Accept authentication via either NextAuth session OR wallet address header
   const session = await getServerSession(req, res, authOptions);
+  const walletAddress = req.headers['x-wallet-address'] as string | undefined;
+  const ethereumAddress = session?.user?.ethereumAddress || walletAddress?.toLowerCase();
 
-  if (!session || !session.user?.ethereumAddress) {
+  if (!ethereumAddress) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
@@ -26,9 +28,9 @@ export default async function handler(
     case 'GET':
       return getSharedDataById(req, res, id);
     case 'PUT':
-      return updateSharedData(req, res, id, session);
+      return updateSharedData(req, res, id, ethereumAddress);
     case 'DELETE':
-      return deleteSharedData(req, res, id, session);
+      return deleteSharedData(req, res, id, ethereumAddress);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -82,37 +84,32 @@ async function updateSharedData(
   req: NextApiRequest,
   res: NextApiResponse,
   id: string,
-  session: any
+  ethereumAddress: string
 ) {
   try {
-    console.log(`Updating shared data record ${id}`, req.body);
-    
+
     // Find the shared data record first
     const existingData = await prisma.sharedMedicalData.findUnique({
       where: {
         id,
       },
     });
-    
+
     if (!existingData) {
       return res.status(404).json({ error: 'Shared data not found' });
     }
-    
-    // Get the user's ethereum address from the session
-    const ethereumAddress = session.user?.ethereumAddress;
 
-    if (!ethereumAddress) {
-      return res.status(400).json({ error: 'No ethereum address associated with this account' });
-    }
+    // Normalize the address
+    const normalizedAddress = ethereumAddress.toLowerCase();
 
     // Check if the user owns this shared data - required for all operations
-    if (existingData.userId !== ethereumAddress) {
+    if (existingData.userId !== normalizedAddress) {
       return res.status(403).json({ error: 'Not authorized to update this shared data' });
     }
-    
+
     // Update the shared data record
     const { isActive, expiryTime } = req.body;
-    
+
     const updatedData = await prisma.sharedMedicalData.update({
       where: {
         id,
@@ -122,7 +119,7 @@ async function updateSharedData(
         expiryTime: expiryTime ? new Date(expiryTime) : existingData.expiryTime,
       },
     });
-    
+
     return res.status(200).json(updatedData);
   } catch (error) {
     console.error('Error updating shared data:', error);
@@ -135,17 +132,10 @@ async function deleteSharedData(
   req: NextApiRequest,
   res: NextApiResponse,
   id: string,
-  session: any
+  ethereumAddress: string
 ) {
   try {
-    // Get the user's ethereum address from the session
-    const ethereumAddress = session.user?.ethereumAddress;
-
-    if (!ethereumAddress) {
-      return res.status(400).json({ error: 'No ethereum address associated with this account' });
-    }
-
-    // Normalize address for comparison
+    // Normalize the address
     const normalizedAddress = ethereumAddress.toLowerCase();
 
     // Find the shared data record

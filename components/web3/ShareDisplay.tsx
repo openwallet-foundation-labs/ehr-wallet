@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Clipboard, Clock, Share2, FileText, Download } from 'lucide-react';
+import { Card, Text, Button, TextInput, Group, Stack, Alert } from '@mantine/core';
+import { Clipboard, Clock, Share2, FileText, Loader2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { getAccessGrantDetails } from '@/lib/web3/contract';
 import { toast } from 'sonner';
@@ -87,82 +84,91 @@ const ShareDisplay = ({ shareableLink, accessId }: ShareDisplayProps) => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Share Your Medical Data</CardTitle>
-        <CardDescription>
+    <Card shadow="md" radius="md" withBorder style={{ width: '100%' }}>
+      <Card.Section p="xl">
+        <Text size="xl" fw={700} style={{ fontSize: '1.5rem' }}>Share Your Medical Data</Text>
+        <Text size="sm" c="dimmed">
           Use this link or QR code to share your medical data securely
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        </Text>
+      </Card.Section>
+
+      <Card.Section p="xl">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+            <Loader2 size={32} className="animate-spin" style={{ color: '#3b82f6' }} />
           </div>
         ) : error ? (
-          <div className="text-destructive text-center py-4">{error}</div>
+          <Alert color="red" title="Error">{error}</Alert>
         ) : (
-          <>
-            <div className="flex justify-center py-4">
-              <div className="p-4 bg-white rounded-lg">
+          <Stack gap="lg">
+            {/* QR Code */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+              <div style={{ padding: 16, backgroundColor: 'white', borderRadius: 8 }}>
                 <QRCode value={shareableLink} size={200} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="link">Shareable Link</Label>
-              <div className="flex space-x-2">
-                <Input
-                  id="link"
+            {/* Shareable Link */}
+            <div>
+              <Text size="sm" fw={500} mb="xs">Shareable Link</Text>
+              <Group gap="xs">
+                <TextInput
                   value={shareableLink}
                   readOnly
-                  className="font-mono text-sm"
+                  style={{ flex: 1, fontFamily: 'monospace', fontSize: 14 }}
                 />
                 <Button
                   variant="outline"
-                  size="icon"
                   onClick={copyToClipboard}
                   title={copied ? 'Copied!' : 'Copy to clipboard'}
+                  leftSection={<Clipboard size={16} />}
                 >
-                  <Clipboard className="h-4 w-4" />
+                  {copied ? 'Copied!' : 'Copy'}
                 </Button>
-              </div>
+              </Group>
               {copied && (
-                <p className="text-xs text-muted-foreground">Copied to clipboard!</p>
+                <Text size="xs" c="dimmed" mt="xs">Copied to clipboard!</Text>
               )}
             </div>
 
+            {/* Expiry Time */}
             {expiryTime && (
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>
-                  Expires in: <strong>{timeLeft}</strong>
-                </span>
-              </div>
+              <Group gap="xs" c="dimmed">
+                <Clock size={16} />
+                <Text size="sm">
+                  Expires in: <Text span fw={600}>{timeLeft}</Text>
+                </Text>
+              </Group>
             )}
 
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center">
-                <Share2 className="h-4 w-4 mr-2" />
-                Sharing Instructions
-              </h4>
-              <ul className="text-sm space-y-2">
-                <li>• Share this link with your healthcare provider</li>
-                <li>• They can access your {shareableLink.includes('document') ? 'documents' : 'data'} by visiting the link</li>
+            {/* Sharing Instructions */}
+            <div style={{
+              padding: 16,
+              borderRadius: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.02)'
+            }}>
+              <Group gap="xs" mb="sm">
+                <Share2 size={16} />
+                <Text fw={500}>Sharing Instructions</Text>
+              </Group>
+              <Stack gap="xs">
+                <Text size="sm">- Share this link with your healthcare provider</Text>
+                <Text size="sm">- They can access your {shareableLink.includes('document') ? 'documents' : 'data'} by visiting the link</Text>
                 {expiryTime && (
-                  <li>• Access will expire automatically after the set duration</li>
+                  <Text size="sm">- Access will expire automatically after the set duration</Text>
                 )}
-                <li>• You can revoke access at any time from your dashboard</li>
-              </ul>
+                <Text size="sm">- You can revoke access at any time from your dashboard</Text>
+              </Stack>
             </div>
-          </>
+          </Stack>
         )}
-      </CardContent>
-      <CardFooter>
-        <p className="text-xs text-muted-foreground">
-          Your {shareableLink.includes('document') ? 'documents are' : 'data is'} securely stored on IPFS and access is managed by an Ethereum smart contract
-        </p>
-      </CardFooter>
+      </Card.Section>
+
+      <Card.Section p="xl" style={{ borderTop: '1px solid #e5e7eb' }}>
+        <Text size="xs" c="dimmed">
+          Your {shareableLink.includes('document') ? 'documents are' : 'data is'} securely stored on IPFS and access is managed by a blockchain smart contract
+        </Text>
+      </Card.Section>
     </Card>
   );
 };

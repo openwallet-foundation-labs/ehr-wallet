@@ -28,7 +28,6 @@ export async function hybridSignIn(
 
   // If NextAuth fails but we have an offline DB, try that
   if (nextAuthResult?.error) {
-    console.log('NextAuth authentication failed, trying offline auth');
     
     const offlineUser = await authenticateOffline(email, password, options?.role);
     
@@ -116,7 +115,6 @@ export async function hybridWalletLogin(
         return { success: true, nextAuth: true, offline: true };
       }
     } catch (e) {
-      console.log('NextAuth MetaMask login failed, using localStorage fallback', e);
     }
     
     // Fallback to localStorage authentication

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, Group, Text, Paper } from "@mantine/core";
 import { X } from "lucide-react";
 import { canInstallPWA, showInstallPrompt, isIOS, isInStandaloneMode } from "@/lib/pwa-utils";
 
@@ -28,7 +28,7 @@ export function InstallPrompt() {
 
     // Set up event listener
     window.addEventListener('beforeinstallprompt', checkInstallable);
-    
+
     return () => {
       window.removeEventListener('beforeinstallprompt', checkInstallable);
     };
@@ -50,23 +50,40 @@ export function InstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 z-50 flex items-center justify-between">
-      <div className="flex-1">
-        <h3 className="font-medium">Install GlobalRad</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Add to home screen for offline access</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => setShowPrompt(false)}>
-          <X className="h-4 w-4 mr-1" />
-          Not now
-        </Button>
-        <Button 
-          size="sm" 
-          onClick={isIOSDevice ? handleIOSInstructions : handleInstallClick}
-        >
-          Install
-        </Button>
-      </div>
-    </div>
+    <Paper
+      shadow="lg"
+      p="md"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        borderTop: '1px solid var(--mantine-color-gray-3)',
+      }}
+    >
+      <Group justify="space-between">
+        <div style={{ flex: 1 }}>
+          <Text fw={500}>Install GlobalRad</Text>
+          <Text size="sm" c="dimmed">Add to home screen for offline access</Text>
+        </div>
+        <Group gap="xs">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => setShowPrompt(false)}
+            leftSection={<X size={14} />}
+          >
+            Not now
+          </Button>
+          <Button
+            size="xs"
+            onClick={isIOSDevice ? handleIOSInstructions : handleInstallClick}
+          >
+            Install
+          </Button>
+        </Group>
+      </Group>
+    </Paper>
   );
 }

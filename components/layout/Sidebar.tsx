@@ -1,40 +1,18 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSession } from "next-auth/react";
 import { useMetaMask } from "@/components/web3/MetaMaskProvider";
-import { 
-  Calendar,
-  User,
-  Users,
+import {
   Database,
   Settings,
-  Info,
-  FileSearch,
-  FileCheck,
-  Folder,
   Share,
   ClipboardList,
   Wallet
 } from "lucide-react";
-// Utility function to conditionally join classNames
-const cn = (...inputs: any[]) => {
-  return inputs
-    .flatMap(input => {
-      if (typeof input === 'string') return input;
-      if (typeof input === 'object') {
-        return Object.entries(input)
-          .filter(([, value]) => value)
-          .map(([key]) => key);
-      }
-      return false;
-    })
-    .filter(Boolean)
-    .join(' ');
-};
-import { Button } from "@/components/ui/button";
+import { NavLink, Stack, Text, Divider, Box } from "@mantine/core";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,14 +21,12 @@ interface SidebarProps {
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const router = useRouter();
-  // Use the proper hook for mobile detection
   const isMobile = useIsMobile();
-  // Get user session to determine role
   const { data: session } = useSession();
   const { isConnected, currentAccount } = useMetaMask();
   const [patientSession, setPatientSession] = useState<any>(null);
   const [isPatient, setIsPatient] = useState(false);
-  
+
   // Check for MetaMask-based patient session in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -65,7 +41,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       }
     }
   }, []);
-  
+
   // Determine if the user is a patient (either via next-auth, MetaMask, or current route)
   useEffect(() => {
     const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
@@ -73,177 +49,173 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     const isOnPatientRoute = router.pathname.startsWith('/patient/');
     setIsPatient(isNextAuthPatient || isMetaMaskPatient || isOnPatientRoute);
   }, [session, isConnected, currentAccount, patientSession, router.pathname]);
-  
-  // Use the determined role
-  const userRole = isPatient ? "PATIENT" : (session?.user?.role || "");
-  
+
   // Patient links - application is now patient-only
   const patientLinks = [
-    { name: "Dashboard", path: "/", icon: <Database className="w-5 h-5" /> },
-    { name: "Share Data", path: "/patient/share-data", icon: <Share className="w-5 h-5" /> },
-    { name: "Access Logs", path: "/patient/access-logs", icon: <ClipboardList className="w-5 h-5" /> },
-    { name: "Connect Wallet", path: "/patient/wallet", icon: <Wallet className="w-5 h-5" /> }
+    { name: "Dashboard", path: "/", icon: <Database size={20} /> },
+    { name: "Share Data", path: "/patient/share-data", icon: <Share size={20} /> },
+    { name: "Access Logs", path: "/patient/access-logs", icon: <ClipboardList size={20} /> },
+    { name: "Connect Wallet", path: "/patient/wallet", icon: <Wallet size={20} /> }
   ];
 
   // Settings links
   const settingsLinks = [
-    { name: "Settings", path: "/patient/settings", icon: <Settings className="w-5 h-5" /> }
+    { name: "Settings", path: "/patient/settings", icon: <Settings size={20} /> }
   ];
 
   // Use patient links for all users
   const links = patientLinks;
-  
+
   // Mobile overlay that closes when clicked outside
   if (isMobile) {
     return (
       <>
         {isOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-20"
+          <Box
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 20,
+            }}
             onClick={onClose}
           />
         )}
-        <aside 
-          className={cn(
-            "fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-30 transition-transform duration-300 ease-in-out transform",
-            isOpen ? "translate-x-0" : "-translate-x-full"
-          )}
+        <Box
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: 260,
+            backgroundColor: 'white',
+            borderRight: '1px solid var(--mantine-color-gray-3)',
+            zIndex: 30,
+            transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 300ms ease-in-out',
+          }}
         >
-          <div className="p-4 border-b border-border">
-            <div className="flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-primary">
-                EHR Wallet
-              </h1>
-              {/* Close button removed to avoid duplicate X icons */}
-            </div>
+          <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+            <Text fw={600} size="lg" style={{ color: 'var(--mantine-color-teal-7)' }}>
+              EHR Wallet
+            </Text>
             {session?.user?.name && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <Text size="sm" c="dimmed" mt={4}>
                 {session.user.name}
-              </p>
+              </Text>
             )}
-          </div>
-          
-          <nav className="p-2">
-            <div className="space-y-1">
-              {links.map((link) => {
-                const isActive = router.pathname === link.path;
-                return (
-                  <Link
-                    key={link.path}
-                    href={link.path}
-                    className={cn("flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors", {
-                      "bg-primary text-primary-foreground": isActive,
-                      "text-foreground hover:bg-secondary": !isActive
-                    })}
-                    onClick={(e) => {
-                      // Prevent default behavior to handle navigation manually
-                      if (isMobile) {
-                        onClose();
-                      }
-                    }}
-                  >
-                    <span className="mr-3">{link.icon}</span>
-                    {link.name}
-                  </Link>
-                );
-              })}
-            </div>
-            
-            <div className="mt-8 pt-4 border-t border-border">
-              <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Settings
-              </div>
-              <div className="space-y-1">
-                {settingsLinks.map((link) => {
-                  const isActive = router.pathname === link.path;
-                  return (
-                    <Link
-                      key={link.path}
-                      href={link.path}
-                      className={cn("flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors", {
-                        "bg-primary text-primary-foreground": isActive,
-                        "text-foreground hover:bg-secondary": !isActive
-                      })}
-                      onClick={(e) => {
-                        // Prevent default behavior to handle navigation manually
-                        if (isMobile) {
-                          onClose();
-                        }
-                      }}
-                    >
-                      <span className="mr-3">{link.icon}</span>
-                      {link.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </nav>
-        </aside>
-      </>
-    );
-  }
-  
-  // Desktop sidebar
-  return (
-    <aside 
-      className={cn(
-        "h-[calc(100vh-4rem)] bg-background border-r border-border overflow-y-auto transition-all duration-300 flex-shrink-0",
-        isOpen ? "w-64" : "w-20"
-      )}
-    >
-      <nav className="p-2">
-        <div className="space-y-1">
-          {links.map((link) => {
-            const isActive = router.pathname === link.path;
-            return (
-              <Link
-                key={link.path}
-                href={link.path}
-                className={cn("flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors", {
-                  "bg-primary text-primary-foreground": isActive,
-                  "text-foreground hover:bg-secondary": !isActive
-                })}
-                prefetch={true}
-              >
-                <span className={cn("mr-3", !isOpen && "mr-0")}>
-                  {link.icon}
-                </span>
-                {isOpen && link.name}
-              </Link>
-            );
-          })}
-        </div>
-        
-        <div className="mt-8 pt-4 border-t border-border">
-          {isOpen && (
-            <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          </Box>
+
+          <Stack gap={4} p="sm">
+            {links.map((link) => {
+              const isActive = router.pathname === link.path;
+              return (
+                <NavLink
+                  key={link.path}
+                  component={Link}
+                  href={link.path}
+                  label={link.name}
+                  leftSection={link.icon}
+                  active={isActive}
+                  onClick={(e) => {
+                    if (isMobile) {
+                      onClose();
+                    }
+                  }}
+                  style={{
+                    borderRadius: 8,
+                  }}
+                />
+              );
+            })}
+
+            <Divider my="md" />
+
+            <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={4}>
               Settings
-            </div>
-          )}
-          <div className="space-y-1">
+            </Text>
             {settingsLinks.map((link) => {
               const isActive = router.pathname === link.path;
               return (
-                <Link
+                <NavLink
                   key={link.path}
+                  component={Link}
                   href={link.path}
-                  className={cn("flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors", {
-                    "bg-primary text-primary-foreground": isActive,
-                    "text-foreground hover:bg-secondary": !isActive
-                  })}
-                  prefetch={true}
-                >
-                  <span className={cn("mr-3", !isOpen && "mr-0")}>
-                    {link.icon}
-                  </span>
-                  {isOpen && link.name}
-                </Link>
+                  label={link.name}
+                  leftSection={link.icon}
+                  active={isActive}
+                  onClick={(e) => {
+                    if (isMobile) {
+                      onClose();
+                    }
+                  }}
+                  style={{
+                    borderRadius: 8,
+                  }}
+                />
               );
             })}
-          </div>
-        </div>
-      </nav>
-    </aside>
+          </Stack>
+        </Box>
+      </>
+    );
+  }
+
+  // Desktop sidebar
+  return (
+    <Box
+      style={{
+        height: 'calc(100vh - 4rem)',
+        backgroundColor: 'var(--mantine-color-body)',
+        borderRight: '1px solid var(--mantine-color-gray-3)',
+        transition: 'all 300ms',
+        width: isOpen ? 260 : 80,
+        flexShrink: 0,
+        overflowY: 'auto',
+      }}
+    >
+      <Stack gap={4} p="sm">
+        {links.map((link) => {
+          const isActive = router.pathname === link.path;
+          return (
+            <NavLink
+              key={link.path}
+              component={Link}
+              href={link.path}
+              label={isOpen ? link.name : undefined}
+              leftSection={link.icon}
+              active={isActive}
+              style={{
+                borderRadius: 8,
+              }}
+            />
+          );
+        })}
+
+        <Divider my="md" />
+
+        {isOpen && (
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase" mb={4}>
+            Settings
+          </Text>
+        )}
+        {settingsLinks.map((link) => {
+          const isActive = router.pathname === link.path;
+          return (
+            <NavLink
+              key={link.path}
+              component={Link}
+              href={link.path}
+              label={isOpen ? link.name : undefined}
+              leftSection={link.icon}
+              active={isActive}
+              style={{
+                borderRadius: 8,
+              }}
+            />
+          );
+        })}
+      </Stack>
+    </Box>
   );
 };

@@ -1,9 +1,9 @@
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
-import { X, Home, Users, FileText, Image, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { X, Home, Settings, Share, ClipboardList, Wallet, Calendar, Heart } from "lucide-react";
+import { Button, Drawer, Stack, Text, NavLink, Divider, Group, Box } from "@mantine/core";
 import { useSession } from "next-auth/react";
 import { useMetaMask } from "@/components/web3/MetaMaskProvider";
 
@@ -18,7 +18,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const { isConnected, currentAccount } = useMetaMask();
   const [patientSession, setPatientSession] = useState<any>(null);
   const [isPatient, setIsPatient] = useState(false);
-  
+
   // Check for MetaMask-based patient session in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -33,7 +33,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       }
     }
   }, []);
-  
+
   // Determine if the user is a patient (either via next-auth or MetaMask)
   useEffect(() => {
     const isNextAuthPatient = session?.user?.role?.toUpperCase() === 'PATIENT';
@@ -42,60 +42,81 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   }, [session, isConnected, currentAccount, patientSession]);
 
   const routes = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/patient/settings", label: "Settings", icon: Settings },
+    { href: "/", label: "Dashboard", icon: <Home size={18} /> },
+    { href: "/patient/share-data", label: "Share Data", icon: <Share size={18} /> },
+    { href: "/patient/access-logs", label: "Access Logs", icon: <ClipboardList size={18} /> },
+    { href: "/patient/wallet", label: "Wallet", icon: <Wallet size={18} /> },
+    { href: "/patient/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
-  
+
   const isActive = (path: string) => {
     return router.pathname === path || router.pathname.startsWith(`${path}/`);
   };
-  
+
   return (
-    <div className="md:hidden">
-      <Sheet open={isOpen} onOpenChange={(open) => {
-        if (!open) onClose();
-      }}>
-        <SheetContent side="left" className="w-[240px] sm:w-[300px]">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between py-2">
-              <div className="font-bold text-lg">EHR Wallet</div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </div>
-            <nav className="flex-1 mt-4">
-              <ul className="space-y-2">
-                {routes.map((route) => {
-                  const Icon = route.icon;
-                  return (
-                    <li key={route.href}>
-                      <Link 
-                        href={route.href}
-                        className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
-                          isActive(route.href)
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                        onClick={onClose}
-                      >
-                        <Icon className="mr-2 h-4 w-4" />
-                        {route.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-            <div className="border-t py-4 mt-auto">
-              <div className="text-xs text-muted-foreground">
-                <p>EHR Wallet v0.1.0</p>
-                <p className="mt-1">© 2025 RadGlobal</p>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+    <Drawer
+      opened={isOpen}
+      onClose={onClose}
+      position="left"
+      size="xs"
+      withCloseButton={false}
+      styles={{
+        body: {
+          padding: 0,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+        content: {
+          width: 280,
+        },
+      }}
+    >
+      <Stack gap={0} h="100%">
+        <Box p="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+          <Group justify="space-between">
+            <Text fw={600} size="lg">
+              EHR Wallet
+            </Text>
+            <Button
+              variant="subtle"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </Button>
+          </Group>
+        </Box>
+
+        <Stack gap={4} p="sm" style={{ flex: 1 }}>
+          {routes.map((route) => {
+            const isRouteActive = isActive(route.href);
+            return (
+              <NavLink
+                key={route.href}
+                component={Link}
+                href={route.href}
+                label={route.label}
+                leftSection={route.icon}
+                active={isRouteActive}
+                onClick={onClose}
+                style={{
+                  borderRadius: 8,
+                }}
+              />
+            );
+          })}
+        </Stack>
+
+        <Divider />
+        <Box p="md" mt="auto">
+          <Text size="xs" c="dimmed">
+            <p>EHR Wallet v0.1.0</p>
+            <p>&copy; 2025 RadGlobal</p>
+          </Text>
+        </Box>
+      </Stack>
+    </Drawer>
   );
 }
