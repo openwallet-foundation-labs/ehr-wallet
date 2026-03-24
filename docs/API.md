@@ -919,3 +919,251 @@ Deletes a shared medical data record.
     { "error": "Failed to delete shared data" }
     ```
 ---
+
+## FHIR API
+
+The EHR Wallet provides a FHIR R4-compliant API for interoperability with healthcare systems. All FHIR endpoints return `application/fhir+json` content type.
+
+### `/api/fhir/metadata` (GET)
+
+Returns the FHIR Capability Statement describing the server's capabilities.
+
+**Request**
+
+- **Method:** `GET`
+- **Authentication:** Not required
+- **Content-Type:** `application/fhir+json`
+
+**Response (200 OK):**
+
+Returns a FHIR CapabilityStatement with supported resources:
+
+```json
+{
+  "resourceType": "CapabilityStatement",
+  "status": "active",
+  "date": "2024-01-01T00:00:00.000Z",
+  "kind": "instance",
+  "software": {
+    "name": "EHR Wallet FHIR Server",
+    "version": "1.0.0"
+  },
+  "implementation": {
+    "description": "Blockchain-based patient health wallet with FHIR R4 support",
+    "url": "https://example.com/api/fhir"
+  },
+  "fhirVersion": "4.0.1",
+  "format": ["application/fhir+json", "json"],
+  "rest": [{
+    "mode": "server",
+    "resource": [
+      { "type": "Patient", ... },
+      { "type": "Encounter", ... },
+      { "type": "Appointment", ... },
+      { "type": "Observation", ... },
+      { "type": "Condition", ... },
+      { "type": "MedicationRequest", ... },
+      { "type": "DocumentReference", ... }
+    ]
+  }]
+}
+```
+
+**Supported Resources:**
+
+| Resource | Operations |
+|----------|------------|
+| Patient | read, search-type, create, update, delete |
+| Encounter | read, search-type |
+| Appointment | read, search-type, create, update |
+| Practitioner | read, search-type |
+| Observation | read, search-type |
+| Condition | read, search-type |
+| MedicationRequest | read, search-type |
+| DocumentReference | read, search-type, create |
+
+---
+
+### `/api/fhir/Patient` (GET, POST)
+
+Manage patient resources.
+
+#### `GET /api/fhir/Patient` - Search Patients
+
+Search for patients using FHIR search parameters.
+
+**Query Parameters:**
+
+*   `name` (string): Search by patient name
+*   `birthdate` (date): Search by date of birth (format: YYYY-MM-DD)
+*   `gender` (token): Search by gender (male, female, other, unknown)
+*   `identifier` (token): Search by patient identifier
+*   `_count` (number): Number of results (default: 20)
+*   `_offset` (number): Pagination offset (default: 0)
+
+**Example Request:**
+
+```
+GET /api/fhir/Patient?name=John&_count=10
+```
+
+**Response (200 OK):**
+
+Returns a FHIR Bundle with search results:
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 1,
+  "entry": [{
+    "resource": {
+      "resourceType": "Patient",
+      "id": "1",
+      "identifier": [{ "system": "local", "value": "PAT-000001" }],
+      "name": [{ "family": "Doe", "given": ["John"] }],
+      "gender": "male",
+      "birthDate": "1990-01-15"
+    }
+  }]
+}
+```
+
+#### `POST /api/fhir/Patient` - Create Patient
+
+Create a new patient resource.
+
+**Request Body:**
+
+```json
+{
+  "resourceType": "Patient",
+  "identifier": [{ "system": "local", "value": "PAT-000001" }],
+  "name": [{ "family": "Doe", "given": ["John"] }],
+  "gender": "male",
+  "birthDate": "1990-01-15",
+  "telecom": [
+    { "system": "phone", "value": "555-1234" },
+    { "system": "email", "value": "john.doe@example.com" }
+  ],
+  "address": [{ "city": "Boston", "state": "MA" }]
+}
+```
+
+**Response:**
+
+*   **201 Created:** Returns the created Patient resource
+*   **400 Bad Request:** Invalid resource or missing required fields
+
+---
+
+### `/api/fhir/Patient/[id]` (GET, PUT, DELETE)
+
+Manage individual patient resources.
+
+#### `GET /api/fhir/Patient/[id]` - Read Patient
+
+Retrieve a specific patient by ID.
+
+**Response (200 OK):**
+
+```json
+{
+  "resourceType": "Patient",
+  "id": "1",
+  "identifier": [{ "system": "local", "value": "PAT-000001" }],
+  "name": [{ "family": "Doe", "given": ["John"] }],
+  "gender": "male",
+  "birthDate": "1990-01-15"
+}
+```
+
+#### `PUT /api/fhir/Patient/[id]` - Update Patient
+
+Update an existing patient.
+
+**Request Body:** Same as create, include all fields to update.
+
+**Response:** Returns the updated Patient resource.
+
+#### `DELETE /api/fhir/Patient/[id]` - Delete Patient
+
+Delete a patient resource.
+
+**Response:** Returns 200 OK with OperationOutcome.
+
+---
+
+### `/api/fhir/Patient/[id]/$everything` (GET)
+
+Retrieve all resources related to a patient.
+
+**Response (200 OK):**
+
+Returns a FHIR Bundle containing all related resources (Observations, Conditions, MedicationRequests, etc.):
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    { "resource": { "resourceType": "Patient", ... } },
+    { "resource": { "resourceType": "Observation", ... } },
+    { "resource": { "resourceType": "Condition", ... } }
+  ]
+}
+```
+
+---
+
+### `/api/fhir/Encounter` (GET, POST)
+
+Manage encounter resources.
+
+#### `GET /api/fhir/Encounter` - Search Encounters
+
+**Query Parameters:**
+
+*   `patient` (reference): Filter by patient
+*   `date` (date): Filter by encounter date
+
+**Example:**
+
+```
+GET /api/fhir/Encounter?patient=Patient/1&date=2024-01
+```
+
+---
+
+### FHIR Operations
+
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| `$everything` | `GET /api/fhir/Patient/[id]/$everything` | Get all patient data |
+
+---
+
+### Error Responses
+
+FHIR errors return an OperationOutcome resource:
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{
+    "severity": "error",
+    "code": "processing",
+    "diagnostics": "Error message",
+    "details": { "text": "Error message" }
+  }]
+}
+```
+
+**Common HTTP Status Codes:**
+
+*   **200 OK:** Successful request
+*   **201 Created:** Resource created successfully
+*   **400 Bad Request:** Invalid request
+*   **404 Not Found:** Resource not found
+*   **405 Method Not Allowed:** HTTP method not supported
+*   **500 Internal Server Error:** Server error
