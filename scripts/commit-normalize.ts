@@ -191,19 +191,51 @@ function formatForFilterBranch(commits: NormalizedCommit[]): string {
   return lines.join('\n');
 }
 
+function createCommitMessageFile(commit: NormalizedCommit, filePath: string): void {
+  fs.writeFileSync(filePath, commit.normalizedMessage);
+}
+
 function applyNormalize(commits: NormalizedCommit[], dryRun: boolean): void {
+  if (commits.length === 0) {
+    return;
+  }
+
   if (dryRun) {
     console.log('DRY RUN - No changes will be applied');
     console.log('');
   }
 
-  for (const commit of commits) {
+  const tmpDir = fs.mkdtempSync('.commit-normalize-');
+  const scriptLines: string[] = [];
+
+  for (let i = commits.length - 1; i >= 0; i--) {
+    const commit = commits[i];
+    const msgFile = `${tmpDir}/msg-${i}`;
+
     if (dryRun) {
-      console.log(`Would rebase commit: ${commit.hash.slice(0, 7)}`);
+      console.log(`Would amend commit: ${commit.hash.slice(0, 7)}`);
       console.log(`New message: ${commit.normalizedMessage.split('\n')[0]}`);
       console.log('');
     } else {
-      runCommand(`git commit --amend -m "${commit.normalizedMessage.replace(/"/g, '\\"').replace(/\n/g, '\\n')}" --no-verify`);
+      createCommitMessageFile(commit, msgFile);
+      scriptLines.push(`exec git commit --amend -F ${msgFile} --no-verify`);
+    }
+  }
+
+  if (!dryRun && scriptLines.length > 0) {
+    const firstCommit = commits[commits.length - 1];
+    const lastCommit = commits[0];
+    const rebaseScript = `${tmpDir}/rebase`;
+
+    fs.writeFileSync(rebaseScript, scriptLines.join('\n') + '\n');
+    console.log(`Applying normalized messages to ${commits.length} commit(s)...`);
+
+    try {
+      runCommand(`git rebase -i --exec "${rebaseScript}" ${lastCommit.hash}^`);
+    } catch {
+      console.error('Rebase failed. Manual intervention may be required.');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   }
 }
@@ -213,6 +245,7 @@ function main() {
 
   let dryRun = false;
   let filterBranch = false;
+  let apply = false;
   let startRef: string | undefined;
   let endRef: string | undefined;
 
@@ -221,6 +254,8 @@ function main() {
       dryRun = true;
     } else if (args[i] === '--filter-branch' || args[i] === '-f') {
       filterBranch = true;
+    } else if (args[i] === '--apply' || args[i] === '-a') {
+      apply = true;
     } else if (args[i] === '--range' || args[i] === '-r') {
       if (i + 2 < args.length) {
         startRef = args[i + 1];
@@ -247,8 +282,10 @@ function main() {
 
   if (filterBranch) {
     console.log(formatForFilterBranch(normalized));
+  } else if (apply && !dryRun) {
+    applyNormalize(normalized, false);
   } else {
-    console.log(formatForReview(normalized));
+    applyNormalize(normalized, dryRun);
   }
 }
 
