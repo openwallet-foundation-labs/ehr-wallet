@@ -15,11 +15,17 @@ import {
 } from '@/lib/db-utils';
 import { toast } from 'sonner';
 
+/**
+ * Extended appointment type with populated provider and appointment type details.
+ */
 export interface AppointmentWithDetails extends AppointmentType {
   provider?: ProviderType;
   appointmentType?: AppointmentTypeType;
 }
 
+/**
+ * Filter criteria for retrieving appointments.
+ */
 export interface AppointmentFilters {
   status?: string;
   providerId?: string;
@@ -29,6 +35,9 @@ export interface AppointmentFilters {
   searchTerm?: string;
 }
 
+/**
+ * Data required to create a new appointment.
+ */
 export interface CreateAppointmentData {
   patientId: string;
   providerId: string;
@@ -39,6 +48,13 @@ export interface CreateAppointmentData {
   notes?: string;
 }
 
+/**
+ * Custom hook for retrieving and managing appointments with optional filtering.
+ * Enriches appointments with provider and appointment type details, and applies specified filters.
+ * @param patientId - Optional patient ID to filter appointments by.
+ * @param filters - Optional filter criteria (status, providerId, appointmentTypeId, dateFrom, dateTo, searchTerm).
+ * @returns Object containing appointments array, loading state, error state, and refreshAppointments function.
+ */
 export const useAppointments = (patientId?: string, filters?: AppointmentFilters) => {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,6 +165,11 @@ export const useAppointments = (patientId?: string, filters?: AppointmentFilters
   };
 };
 
+/**
+ * Custom hook for booking a new appointment.
+ * Creates the appointment and marks the corresponding time slot as unavailable.
+ * @returns Object containing bookAppointment function, booking state, and error state.
+ */
 export const useAppointmentBooking = () => {
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +226,11 @@ export const useAppointmentBooking = () => {
   };
 };
 
+/**
+ * Custom hook for performing appointment actions (status update, cancel, reschedule).
+ * Handles time slot availability when appointments are cancelled or rescheduled.
+ * @returns Object containing updateAppointmentStatus, cancelAppointment, rescheduleAppointment functions, updating state, and error state.
+ */
 export const useAppointmentActions = () => {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -363,6 +389,11 @@ export const useAppointmentActions = () => {
   };
 };
 
+/**
+ * Custom hook for retrieving appointment-related data (providers, appointment types, time slots).
+ * Provides a helper function to get available time slots for a specific provider and date.
+ * @returns Object containing providers, appointmentTypes, timeSlots arrays, loading state, error state, getAvailableTimeSlots function, and refreshData function.
+ */
 export const useAppointmentData = () => {
   const [providers, setProviders] = useState<ProviderType[]>([]);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentTypeType[]>([]);

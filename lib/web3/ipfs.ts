@@ -103,7 +103,12 @@ const createHeliaClient = async () => {
 // Import the Pinata service
 import { pinataService } from './pinata';
 
-// Upload data to IPFS using Pinata with fallback to Helia and HTTP API
+/**
+ * Uploads data to IPFS using a tiered fallback strategy: Pinata -> Helia -> HTTP API.
+ * @param data - The data to upload (object or JSON string).
+ * @returns Promise resolving to the CID of the uploaded content.
+ * @throws Error if all upload methods fail.
+ */
 export const uploadToIpfs = async (data: any): Promise<string> => {
   try {
     // First attempt: Use Pinata if configured
@@ -147,7 +152,13 @@ export const uploadToIpfs = async (data: any): Promise<string> => {
   }
 };
 
-// Retrieve data from IPFS using Pinata with fallback to Helia and gateway
+/**
+ * Retrieves data from IPFS using a tiered fallback strategy: Pinata -> Helia -> Gateway.
+ * Validates CIDs and gateway URLs to prevent SSRF attacks.
+ * @param cidString - The CID of the content to retrieve.
+ * @returns Promise resolving to the retrieved content.
+ * @throws Error if all retrieval methods fail.
+ */
 export const getFromIpfs = async (cidString: string): Promise<any> => {
   try {
     // First attempt: Use Pinata if configured
@@ -246,7 +257,12 @@ export const getFromIpfs = async (cidString: string): Promise<any> => {
   }
 };
 
-// Helper function to get the IPFS gateway URL for a CID
+/**
+ * Gets the appropriate IPFS gateway URL for a given CID.
+ * Uses API proxy in browser environment, Pinata gateway if configured, or default gateway.
+ * @param cid - The IPFS CID.
+ * @returns The gateway URL string.
+ */
 export const getIpfsGatewayUrl = (cid: string): string => {
   // Check if we're in a browser environment and should use the API route
   if (typeof window !== 'undefined') {
@@ -267,7 +283,10 @@ export const getIpfsGatewayUrl = (cid: string): string => {
   return `${gatewayUrl}/${cid}`;
 };
 
-// Check if IPFS is available
+/**
+ * Checks if IPFS is available by attempting to create a Helia client or access a public gateway.
+ * @returns Promise resolving to true if IPFS is available, false otherwise.
+ */
 export const checkIpfsAvailability = async (): Promise<boolean> => {
   try {
     // Try to create a Helia client
@@ -289,7 +308,12 @@ export const checkIpfsAvailability = async (): Promise<boolean> => {
   }
 };
 
-// Encrypt data before uploading to IPFS
+/**
+ * Encrypts data using AES-GCM with a password-derived key before uploading to IPFS.
+ * @param data - The data to encrypt (object or string).
+ * @param password - The password used to derive the encryption key.
+ * @returns Promise resolving to base64-encoded encrypted data (IV + ciphertext).
+ */
 export const encryptData = async (data: any, password: string): Promise<string> => {
   // This is a simple encryption for demo purposes
   // In production, use a proper encryption library
@@ -334,7 +358,12 @@ export const encryptData = async (data: any, password: string): Promise<string> 
   return btoa(String.fromCharCode(...encryptedArray));
 };
 
-// Decrypt data retrieved from IPFS
+/**
+ * Decrypts data that was encrypted with encryptData using AES-GCM.
+ * @param encryptedData - Base64-encoded encrypted data (IV + ciphertext).
+ * @param password - The password used during encryption.
+ * @returns Promise resolving to the decrypted data (parsed JSON object or string).
+ */
 export const decryptData = async (encryptedData: string, password: string): Promise<any> => {
   // Convert from base64
   const encryptedArray = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));

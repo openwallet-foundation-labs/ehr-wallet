@@ -394,5 +394,7 @@ export class PinataService {
   }
 }
 
-// Create a singleton instance
+/**
+ * Singleton instance of PinataService for centralized Pinata IPFS operations.
+ */
 export const pinataService = new PinataService();

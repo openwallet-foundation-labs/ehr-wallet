@@ -1,7 +1,11 @@
 import { db, PatientType, ProviderType, AppointmentTypeType, TimeSlotType, AppointmentType, VisitType, UserType } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
-// Patient operations
+/**
+ * Retrieves all patients from the database with their latest visit information.
+ * @returns Promise resolving to an array of patient objects with id, name, dob, gender, phone, lastVisit, email, and address.
+ * @throws Error if database query fails.
+ */
 export async function getAllPatients() {
   try {
     const patients = await db.patients.toArray();
@@ -45,10 +49,21 @@ export async function getAllPatients() {
   }
 }
 
+/**
+ * Retrieves a single patient by their patient ID.
+ * @param patientId - The patient ID (e.g., "PAT-1001")
+ * @returns Promise resolving to the patient object or undefined if not found.
+ */
 export async function getPatientById(patientId: string) {
   return db.patients.where('patientId').equals(patientId).first();
 }
 
+/**
+ * Creates a new patient with an auto-generated patient ID and initial visit record.
+ * @param data - Patient data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created patient object (without internal id).
+ * @throws Error if patient creation fails.
+ */
 export async function createNewPatient(data: Omit<PatientType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     // Generate a patient ID (e.g., PAT-XXXX)
@@ -111,6 +126,13 @@ export async function createNewPatient(data: Omit<PatientType, 'id' | 'createdAt
   }
 }
 
+/**
+ * Updates an existing patient by their patient ID.
+ * @param patientId - The patient ID to update.
+ * @param data - Partial patient data to update.
+ * @returns Promise resolving to the updated patient object.
+ * @throws Error if patient is not found or update fails.
+ */
 export async function updatePatient(patientId: string, data: Partial<PatientType>) {
   const patient = await db.patients.where('patientId').equals(patientId).first();
   
@@ -128,6 +150,12 @@ export async function updatePatient(patientId: string, data: Partial<PatientType
   return updatedPatient;
 }
 
+/**
+ * Deletes a patient and all associated visits and appointments.
+ * @param patientId - The patient ID to delete.
+ * @returns Promise resolving to a success message object.
+ * @throws Error if patient is not found.
+ */
 export async function deletePatient(patientId: string) {
   const patient = await db.patients.where('patientId').equals(patientId).first();
   
@@ -147,7 +175,11 @@ export async function deletePatient(patientId: string) {
   return { message: 'Patient deleted successfully' };
 }
 
-// Provider operations
+/**
+ * Retrieves all providers from the database.
+ * @returns Promise resolving to an array of all provider objects.
+ * @throws Error if database query fails.
+ */
 export async function getAllProviders() {
   try {
     return await db.providers.toArray();
@@ -157,14 +189,30 @@ export async function getAllProviders() {
   }
 }
 
+/**
+ * Retrieves a single provider by their internal ID.
+ * @param id - The provider's internal UUID.
+ * @returns Promise resolving to the provider object or undefined if not found.
+ */
 export async function getProviderById(id: string) {
   return db.providers.get(id);
 }
 
+/**
+ * Retrieves a single provider by their email address.
+ * @param email - The provider's email address.
+ * @returns Promise resolving to the provider object or undefined if not found.
+ */
 export async function getProviderByEmail(email: string) {
   return db.providers.where('email').equals(email).first();
 }
 
+/**
+ * Creates a new provider with auto-generated ID and timestamps.
+ * @param data - Provider data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created provider object.
+ * @throws Error if provider creation fails.
+ */
 export async function createProvider(data: Omit<ProviderType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const now = new Date();
@@ -184,6 +232,13 @@ export async function createProvider(data: Omit<ProviderType, 'id' | 'createdAt'
   }
 }
 
+/**
+ * Updates an existing provider by their internal ID.
+ * @param id - The provider's internal UUID.
+ * @param data - Partial provider data to update.
+ * @returns Promise resolving to the updated provider object.
+ * @throws Error if provider is not found or update fails.
+ */
 export async function updateProvider(id: string, data: Partial<ProviderType>) {
   try {
     const provider = await db.providers.get(id);
@@ -206,6 +261,12 @@ export async function updateProvider(id: string, data: Partial<ProviderType>) {
   }
 }
 
+/**
+ * Deletes a provider and all associated time slots and appointments.
+ * @param id - The provider's internal UUID to delete.
+ * @returns Promise resolving to a success message object.
+ * @throws Error if provider is not found.
+ */
 export async function deleteProvider(id: string) {
   try {
     const provider = await db.providers.get(id);
@@ -228,7 +289,11 @@ export async function deleteProvider(id: string) {
   }
 }
 
-// Appointment type operations
+/**
+ * Retrieves all appointment types from the database.
+ * @returns Promise resolving to an array of all appointment type objects.
+ * @throws Error if database query fails.
+ */
 export async function getAllAppointmentTypes() {
   try {
     return await db.appointmentTypes.toArray();
@@ -238,10 +303,21 @@ export async function getAllAppointmentTypes() {
   }
 }
 
+/**
+ * Retrieves a single appointment type by its internal ID.
+ * @param id - The appointment type's internal UUID.
+ * @returns Promise resolving to the appointment type object or undefined if not found.
+ */
 export async function getAppointmentTypeById(id: string) {
   return db.appointmentTypes.get(id);
 }
 
+/**
+ * Creates a new appointment type with auto-generated ID and timestamps.
+ * @param data - Appointment type data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created appointment type object.
+ * @throws Error if appointment type creation fails.
+ */
 export async function createAppointmentType(data: Omit<AppointmentTypeType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const now = new Date();
@@ -261,6 +337,13 @@ export async function createAppointmentType(data: Omit<AppointmentTypeType, 'id'
   }
 }
 
+/**
+ * Updates an existing appointment type by its internal ID.
+ * @param id - The appointment type's internal UUID.
+ * @param data - Partial appointment type data to update.
+ * @returns Promise resolving to the updated appointment type object.
+ * @throws Error if appointment type is not found or update fails.
+ */
 export async function updateAppointmentType(id: string, data: Partial<AppointmentTypeType>) {
   try {
     const appointmentType = await db.appointmentTypes.get(id);
@@ -283,6 +366,12 @@ export async function updateAppointmentType(id: string, data: Partial<Appointmen
   }
 }
 
+/**
+ * Deletes an appointment type. Associated appointments will have their appointmentTypeId set to null.
+ * @param id - The appointment type's internal UUID to delete.
+ * @returns Promise resolving to a success message object.
+ * @throws Error if appointment type is not found.
+ */
 export async function deleteAppointmentType(id: string) {
   try {
     const appointmentType = await db.appointmentTypes.get(id);
@@ -311,6 +400,12 @@ export async function deleteAppointmentType(id: string) {
   }
 }
 
+/**
+ * Deletes an appointment and marks the associated time slot as available again.
+ * @param id - The appointment's internal UUID to delete.
+ * @returns Promise resolving to true if deletion was successful.
+ * @throws Error if appointment is not found.
+ */
 export async function deleteAppointment(id: string) {
   try {
     const appointment = await db.appointments.where('id').equals(id).first();
@@ -349,7 +444,11 @@ export async function deleteAppointment(id: string) {
   }
 }
 
-// User operations
+/**
+ * Retrieves all users from the database, excluding password fields.
+ * @returns Promise resolving to an array of user objects without passwords.
+ * @throws Error if database query fails.
+ */
 export async function getAllUsers() {
   try {
     const users = await db.users.toArray();
@@ -364,6 +463,12 @@ export async function getAllUsers() {
   }
 }
 
+/**
+ * Retrieves a single user by their internal ID, excluding the password field.
+ * @param id - The user's internal UUID.
+ * @returns Promise resolving to the user object without password, or null if not found.
+ * @throws Error if database query fails.
+ */
 export async function getUserById(id: string) {
   try {
     const user = await db.users.where('id').equals(id).first();
@@ -378,6 +483,12 @@ export async function getUserById(id: string) {
   }
 }
 
+/**
+ * Retrieves a single user by their email address, including the password field.
+ * @param email - The user's email address.
+ * @returns Promise resolving to the user object (with password) or undefined if not found.
+ * @throws Error if database query fails.
+ */
 export async function getUserByEmail(email: string) {
   try {
     return await db.users.where('email').equals(email).first();
@@ -387,6 +498,12 @@ export async function getUserByEmail(email: string) {
   }
 }
 
+/**
+ * Creates a new user with auto-generated ID and timestamps. Throws if email already exists.
+ * @param data - User data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created user object without password.
+ * @throws Error if email already exists or user creation fails.
+ */
 export async function createUser(data: Omit<UserType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     // Check if user already exists
@@ -415,6 +532,13 @@ export async function createUser(data: Omit<UserType, 'id' | 'createdAt' | 'upda
   }
 }
 
+/**
+ * Updates an existing user by their internal ID. Validates email uniqueness if email is being changed.
+ * @param id - The user's internal UUID.
+ * @param data - Partial user data to update.
+ * @returns Promise resolving to the updated user object without password.
+ * @throws Error if user is not found, email is already in use, or update fails.
+ */
 export async function updateUser(id: string, data: Partial<UserType>) {
   try {
     const user = await db.users.where('id').equals(id).first();
@@ -452,6 +576,12 @@ export async function updateUser(id: string, data: Partial<UserType>) {
   }
 }
 
+/**
+ * Deletes a user by their internal ID.
+ * @param id - The user's internal UUID to delete.
+ * @returns Promise resolving to true if deletion was successful.
+ * @throws Error if user is not found.
+ */
 export async function deleteUser(id: string) {
   try {
     const user = await db.users.where('id').equals(id).first();
@@ -467,7 +597,11 @@ export async function deleteUser(id: string) {
   }
 }
 
-// Time slot operations
+/**
+ * Retrieves all time slots from the database.
+ * @returns Promise resolving to an array of all time slot objects.
+ * @throws Error if database query fails.
+ */
 export async function getAllTimeSlots() {
   try {
     return await db.timeSlots.toArray();
@@ -477,10 +611,21 @@ export async function getAllTimeSlots() {
   }
 }
 
+/**
+ * Retrieves a single time slot by its internal ID.
+ * @param id - The time slot's internal UUID.
+ * @returns Promise resolving to the time slot object or undefined if not found.
+ */
 export async function getTimeSlotById(id: string) {
   return db.timeSlots.get(id);
 }
 
+/**
+ * Creates a new time slot with auto-generated ID and timestamps.
+ * @param data - Time slot data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created time slot object.
+ * @throws Error if time slot creation fails.
+ */
 export async function createTimeSlot(data: Omit<TimeSlotType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const now = new Date();
@@ -500,6 +645,13 @@ export async function createTimeSlot(data: Omit<TimeSlotType, 'id' | 'createdAt'
   }
 }
 
+/**
+ * Updates an existing time slot by its internal ID.
+ * @param id - The time slot's internal UUID.
+ * @param data - Partial time slot data to update.
+ * @returns Promise resolving to the updated time slot object.
+ * @throws Error if time slot is not found or update fails.
+ */
 export async function updateTimeSlot(id: string, data: Partial<TimeSlotType>) {
   try {
     const timeSlot = await db.timeSlots.get(id);
@@ -522,6 +674,12 @@ export async function updateTimeSlot(id: string, data: Partial<TimeSlotType>) {
   }
 }
 
+/**
+ * Deletes a time slot by its internal ID.
+ * @param id - The time slot's internal UUID to delete.
+ * @returns Promise resolving to a success message object.
+ * @throws Error if time slot is not found.
+ */
 export async function deleteTimeSlot(id: string) {
   try {
     const timeSlot = await db.timeSlots.get(id);
@@ -540,7 +698,11 @@ export async function deleteTimeSlot(id: string) {
   }
 }
 
-// Appointment operations
+/**
+ * Retrieves all appointments from the database.
+ * @returns Promise resolving to an array of all appointment objects.
+ * @throws Error if database query fails.
+ */
 export async function getAllAppointments() {
   try {
     return await db.appointments.toArray();
@@ -550,10 +712,21 @@ export async function getAllAppointments() {
   }
 }
 
+/**
+ * Retrieves a single appointment by its internal ID.
+ * @param id - The appointment's internal UUID.
+ * @returns Promise resolving to the appointment object or undefined if not found.
+ */
 export async function getAppointmentById(id: string) {
   return db.appointments.get(id);
 }
 
+/**
+ * Creates a new appointment with auto-generated ID and timestamps.
+ * @param data - Appointment data excluding id, createdAt, and updatedAt timestamps.
+ * @returns Promise resolving to the created appointment object.
+ * @throws Error if appointment creation fails.
+ */
 export async function createAppointment(data: Omit<AppointmentType, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const now = new Date();
@@ -573,6 +746,13 @@ export async function createAppointment(data: Omit<AppointmentType, 'id' | 'crea
   }
 }
 
+/**
+ * Updates an existing appointment by its internal ID.
+ * @param id - The appointment's internal UUID.
+ * @param data - Partial appointment data to update.
+ * @returns Promise resolving to the updated appointment object.
+ * @throws Error if appointment is not found or update fails.
+ */
 export async function updateAppointment(id: string, data: Partial<AppointmentType>) {
   try {
     const appointment = await db.appointments.get(id);
