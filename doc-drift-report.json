@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-03-29T07:06:39.097Z",
+  "scannedRoutes": 13,
+  "documentedEndpoints": 17,
+  "undocumentedRoutes": [
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Encounter (GET) is not documented",
+      "route": "/api/fhir/Encounter",
+      "method": "GET",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Encounter/index.ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Patient/[id] (GET) is not documented",
+      "route": "/api/fhir/Patient/[id]",
+      "method": "GET",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Patient/[id].ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Patient/[id] (PUT) is not documented",
+      "route": "/api/fhir/Patient/[id]",
+      "method": "PUT",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Patient/[id].ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Patient/[id] (DELETE) is not documented",
+      "route": "/api/fhir/Patient/[id]",
+      "method": "DELETE",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Patient/[id].ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Patient (GET) is not documented",
+      "route": "/api/fhir/Patient",
+      "method": "GET",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Patient/index.ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/Patient (POST) is not documented",
+      "route": "/api/fhir/Patient",
+      "method": "POST",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/Patient/index.ts"
+    },
+    {
+      "type": "undocumented_route",
+      "severity": "high",
+      "message": "Route /api/fhir/metadata (GET) is not documented",
+      "route": "/api/fhir/metadata",
+      "method": "GET",
+      "filePath": "/Users/sb/code/ehr-wallet/pages/api/fhir/metadata.ts"
+    }
+  ],
+  "missingDocs": [],
+  "pathMismatches": [],
+  "methodMismatches": [],
+  "summary": {
+    "totalFindings": 7,
+    "highSeverity": 7,
+    "mediumSeverity": 0,
+    "lowSeverity": 0
+  }
+}
