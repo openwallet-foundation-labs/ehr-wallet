@@ -31,7 +31,7 @@
     "@mantine/dates": "^8.3.15",
     "@mantine/hooks": "^8.3.15",
     "@mantine/notifications": "^8.3.15",
-    "@prisma/client": "^6.7.0",
+    "@prisma/client": "^7.6.0",
     "@radix-ui/react-accordion": "^1.2.10",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-aspect-ratio": "^1.1.6",
