@@ -211,8 +211,8 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.29)(@types/node@22.15.17)(typescript@5.8.3)))
       uuid:
-        specifier: ^11.1.0
-        version: 11.1.0
+        specifier: ^13.0.0
+        version: 13.0.0
       vaul:
         specifier: ^0.9.9
         version: 0.9.9(@types/react-dom@18.3.7(@types/react@18.3.21))(@types/react@18.3.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -8413,8 +8413,8 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
-  uuid@11.1.0:
-    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+  uuid@13.0.0:
+    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
     hasBin: true
 
   uuid@8.3.2:
@@ -12807,6 +12807,10 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/node@22.19.13':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.19.15':
     dependencies:
       undici-types: 6.21.0
 
@@ -18896,7 +18900,7 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
-  uuid@11.1.0: {}
+  uuid@13.0.0: {}
 
   uuid@8.3.2: {}
 
