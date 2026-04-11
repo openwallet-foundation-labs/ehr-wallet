@@ -51,7 +51,7 @@ jobs:
           [ -z "$NEXTAUTH_SECRET" ] && echo "⚠️ NEXTAUTH_SECRET is not set" || echo "✅ NEXTAUTH_SECRET is set"
 
       - name: Lint
-        run: npx eslint . --max-warnings 0 || true
+        run: npx eslint .
 
       - name: Build
         run: pnpm run build
