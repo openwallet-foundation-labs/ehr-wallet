@@ -31,6 +31,8 @@ export default tseslint.config(
       "no-constant-binary-expression": "warn",
       "no-useless-catch": "warn",
       "prefer-const": "warn",
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
     },
   }
 );
