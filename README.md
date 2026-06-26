@@ -189,3 +189,7 @@ This project is maintained by:
 ## Documentation License
 
 This documentation is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
+## Governance
+
+The Project Charter for EHR Wallet can be found here: [https://github.com/openwallet-foundation/technical-project-charters/blob/main/EHR%20Wallet%20Technical%20Charter%20(FINAL%2009.09.25).pdf](https://github.com/openwallet-foundation/technical-project-charters/blob/main/EHR%20Wallet%20Technical%20Charter%20(FINAL%2009.09.25).pdf)
