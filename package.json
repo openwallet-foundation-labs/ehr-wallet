@@ -105,7 +105,7 @@
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@playwright/test": "^1.55.1",
     "@swc/core": "^1.11.29",
-    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/typography": "^0.5.20",
     "@testing-library/jest-dom": "^6.6.3",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.15.17",
