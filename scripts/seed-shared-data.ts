@@ -1,8 +1,13 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('../generated/prisma/client');
+const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
 const { keccak256, toUtf8Bytes } = require('ethers');
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
+// Initialize Prisma client with driver adapter (Prisma 7)
+const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({
+    url: process.env.DATABASE_URL || 'file:./dev.db',
+  }),
+});
 
 async function main() {
   console.log('Starting to seed shared medical data...');

@@ -53,3 +53,6 @@ tsconfig.tsbuildinfo
 
 # Build outputs
 .swc
+
+# Prisma 7 generated client
+generated/

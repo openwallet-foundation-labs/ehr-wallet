@@ -1,11 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma as basePrisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
-// Initialize Prisma client directly in the API route
-// Use type assertion to avoid TypeScript errors with model names
-const prisma = new PrismaClient() as PrismaClient & {
+// Keep the legacy type assertion shape for model access
+const prisma = basePrisma as typeof basePrisma & {
   sharedMedicalData: any;
 };
 

@@ -5,10 +5,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import patientIndexHandler from '@/pages/api/fhir/Patient/index';
 import patientIdHandler from '@/pages/api/fhir/Patient/[id]';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 
 // Mock Prisma
-jest.mock('@prisma/client', () => {
+jest.mock('@/generated/prisma/client', () => {
   const mockPrisma = {
     patient: {
       findMany: jest.fn(),
