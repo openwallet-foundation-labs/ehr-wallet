@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { visitToFHIREncounter, createFHIRBundle } from '@/lib/fhir/converters';
 import { FHIROperationOutcome } from '@/lib/fhir/types';
 
-const prisma = new PrismaClient();
 
 /**
  * FHIR Encounter (Visit) Collection Endpoint

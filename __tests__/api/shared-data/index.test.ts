@@ -46,7 +46,7 @@ describe('Shared Data API', () => {
     };
 
     // Mock Prisma
-    jest.doMock('@prisma/client', () => ({
+    jest.doMock('@/generated/prisma/client', () => ({
       PrismaClient: jest.fn(() => mockPrisma),
     }));
   });

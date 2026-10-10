@@ -12,6 +12,7 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/components/(.*)$': '<rootDir>/components/$1',
     '^@/lib/(.*)$': '<rootDir>/lib/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
   testMatch: [
     '**/__tests__/**/*.test.[jt]s?(x)',
