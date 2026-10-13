@@ -23,7 +23,7 @@
     "normalize:commits": "tsx scripts/commit-normalize.ts"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.2.8",
+    "@fontsource/inter": "^5.3.0",
     "@helia/json": "^6.0.6",
     "@hookform/resolvers": "^5.9.1",
     "@mantine/core": "^8.3.15",
